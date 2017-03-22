@@ -39,12 +39,16 @@ def kZpp(t, a = []):
   return complex(-2*pi*2*pi*cos(2*pi*t) - 2 * 2 * 0.65 * 2*pi*2*pi*cos(2*2*pi*t) - 1j * 1.5 * sin(2*pi*t))
 
 class Segment:
-  def __init__(self, n, periodic=False, Z=cZ, Zp=cZp, Zpp=cZpp, args=[], f=[], inargs=[]):
+  def __init__(self, n, periodic=False, Z=cZ, Zp=cZp, Zpp=cZpp, args=[], f=[], inargs=[], quad='ps'):
+    # 'p' periodic
+    # 'ps' periodic shift
     if f != []:
       # print 'short form'
       (Z, Zp, Zpp, args) = f(*inargs)
-    if periodic:
+    if quad == 'p' or quad == 'ps':
       self.t = np.array([float(k) / n for k in range(n)], float)
+      if quad == 'ps':
+        self.t = self.t + 1. / 2 / n
     else:
       self.t = np.array([float(k) / (n - 1) for k in range(n)], float)
     # trapezoidal nodes

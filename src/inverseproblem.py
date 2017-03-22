@@ -12,6 +12,18 @@ import segment as sg
 import plot
 import directproblem as dpb
 
+def computeRreg(R, a, nsb):
+  return a * np.eye(nsb) + R.T.dot(R)
+
+def computeRHS(U, U_nu, z0):
+  F = ly.phi_x(z0, so.x)
+  F_nu = ly.phi_x_n(z0, so.x, so.nx)
+  return U.dot(F_nu) - U_nu.dot(F)
+
+def computeRHSreg(R, U, U_nu, z0, RHS=[]):
+  if RHS == []:
+    RHS = computeRHS(U, U_nu, z0)
+  return R.T.dot(RHS)
 
 h = 20
 n = 20
@@ -29,8 +41,8 @@ so = sg.Segment(nso, f=sg.circle, inargs=(1j, ro), periodic=True)
 
 rd  = 1
 nsd = rd * ns
-# sd = sg.Segment(nsd, f=sg.circle, inargs=(0, rd), periodic=True)
-sd = sg.Segment(nsd, f=sg.ellipse, inargs=(0, rd, 1.5*rd), periodic=True)
+sd = sg.Segment(nsd, f=sg.circle, inargs=(0, rd), periodic=True)
+#sd = sg.Segment(nsd, f=sg.ellipse, inargs=(0, rd, 1.5*rd), periodic=True)
 
 # (K' + 0.5 * c(h) * I) psi = -phi_nu
 
@@ -63,6 +75,7 @@ for k in range(nsb):
 z0 = sb.x[0]
 x, y, pp = plot.meshgrid((-2, 2, 20))
 G = sg.Layer(b=sd, exp=ly.layerpotS, dns=allpsi[:,0])
+
 pp = sg.Pointset(pp)
 
 vv1 = sg.eval_layer(G, pp)
@@ -70,8 +83,8 @@ vv2 = ly.fundsol(abs(pp.x - z0), 0)
 h = plt.figure()
 plot.plot(h, x, y, vv2 + vv1)
 sd.plot(p=True)
-so.plot(p=True)
-sb.plot(p=True)
+# so.plot(p=True)
+# sb.plot(p=True)
 plt.show(block=True)
 
 
@@ -110,9 +123,6 @@ R = U.dot(V_nu) - U_nu.dot(V)
 normf = np.empty(len(pp.x), float)
 for k in range(len(pp.x)):
   z0 = pp.x[k]
-  F = ly.phi_x(z0, so.x)
-  F_nu = ly.phi_x_n(z0, so.x, so.n)
-  RHS = U.dot(F_nu) - U_nu.dot(F)
   #F_stored(:,k) = F;
   #F_nu_stored(:,k) = F_nu;
   #RHS_stored(:,k) = RHS;
@@ -120,10 +130,11 @@ for k in range(len(pp.x)):
   #zeta = A \ RHS;
   a = 1e-14;
 
-  B = a * np.eye(nsb) + R.T.dot(R)
-  RHSB = R.T.dot(RHS)
+  Rreg = computeRreg(R, a, nsb)
+  RHS = computeRHS(U, U_nu, z0)
+  RHSreg = computeRHSreg(R, U, U_nu, z0, RHS)
     
-  zeta = solve(B, RHSB)
+  zeta = solve(Rreg, RHSreg)
   #sum(F_nu .* so.w.'); % check null
     
   normf[k] = norm(RHS) / norm(zeta)
@@ -135,4 +146,6 @@ sd.plot(p=True)
 plt.show(block=True)
 
 R = np.array(R, float)
-B = np.array(B, float)
+Rreg = np.array(Rreg, float)
+
+
