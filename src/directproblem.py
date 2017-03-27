@@ -9,9 +9,9 @@ import segment as sg
 import plot
 
 def directA(l, c):
-  Kp = l.exp(0, l.b, [], [])
+  Kp = l.exp(0, l.b[0], [], [])
   A = Kp
-  A[np.diag_indices(len(l.b.x))]=A[np.diag_indices(len(l.b.x))] + 0.5 * c
+  A[np.diag_indices(len(l.b[0].x))]=A[np.diag_indices(len(l.b[0].x))] + 0.5 * c
   return A
 
 def directrhs(b, z0):
@@ -23,7 +23,7 @@ def directrhs(b, z0):
   
 def directpb(z0, l, c, A=[], rhs=[]):
   if A == []:
-    print 'Warning: calculated A, not passed'
+    print('Warning: calculated A, not passed')
     A = directA(l, c)
   if rhs == []:
     rhs = directrhs(l.b[0], z0)
@@ -63,5 +63,5 @@ if __name__ == "__main__":
   vv2 = ly.fundsol(abs(pp.x - z0), 0)
 
   h = plt.figure()
-  plot.plot(h, x, y, vv2 + vv1,'cf')
+  plot.plot(x, y, vv2 + vv1,'cf')
   plt.show(block=True)

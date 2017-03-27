@@ -1,7 +1,7 @@
 from scipy.linalg import circulant
 import numpy as np
 
-import my_type
+import __types__
 import quadr
 
 pi = np.pi
@@ -13,14 +13,14 @@ symmflagval = -999.; # all diag vals of this signifies symmetric - a hack
 def fundsol(r = [], k = 0):
   return -1.0 / 2 / pi * log(abs(r))
 
-def fundsol_deriv(r = [], cosphi = 0 , k = 0):
+def fundsol_deriv(r = [], cosphi = 0 , k = 0): # without a -1
   return 1.0 / 2 / pi / r * cosphi
 
 def phi(z0=0, z=[]):
   return - 1. / 2 / pi * log(abs(z - z0))
 def phi_p(z0=0, z=[]):
   d = z - z0
-  return - 1. / 2 / pi * d/(abs(d)**2)
+  return - 1. / 2 / pi * d/abs(d)**2
 def phi_n(z0=0, z=[], n=[]):
   return np.real(np.conj(n) * phi_p(z0, z))
 
@@ -127,6 +127,42 @@ def layerpotSD(k=0, s=[], t=[], o=[]):
   cosphi = - np.real(np.conj(n) * d) / r;
   
   A = fundsol_deriv(r, cosphi, k)
+
+  sp = s.speed / 2 / pi
+  if slf:
+    A[np.diag_indices(N)] = -s.kappa / 4 / pi
+    A = A.dot(np.diag(s.w))
+  else:
+    A = A.dot(np.diag(s.w))
+  return A
+
+def scalar(a, b):
+  return np.real(a * np.conj(b))
+
+def layerpotDD(k=0, s=[], t=[], o=[]):
+  slf = 0
+  if t == []:
+    slf = 1
+    t = s
+    print('Warning: layerpotDD self not implemented')
+  M = len(t.x)
+  N = len(s.x)
+  
+  d = np.array([t.x for k in range(N)])
+  d = d.T
+  d = d - np.array([s.x for k in range(M)])
+  r = abs(d)
+  if slf:
+    r[np.diag_indices(N)] = symmflagval
+
+  ny = np.array([s.nx for k in range(M)])
+  # cosphi = np.real(np.conj(n) * d) / r;
+  
+  nx = np.array([t.nx for k in range(N)])
+  nx = nx.T
+
+  A = -2. / r**3 * 1. / r * scalar(d, nx) * scalar(d, ny) + 1. / r**2 * scalar(ny, nx)
+  A = 1. / 2 / pi * A
 
   sp = s.speed / 2 / pi
   if slf:

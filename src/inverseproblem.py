@@ -2,9 +2,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.linalg import solve
+from scipy.linalg import lstsq
 from numpy.linalg import norm
 from numpy.linalg import cond
-
+import scipy.linalg as lin
 
 import my_type
 import layerpot as ly
@@ -13,7 +14,7 @@ import plot
 import directproblem as dpb
 
 def computeRreg(R, a, nsb):
-  return a * np.eye(nsb) + R.T.dot(R)
+  return a * np.eye(R.shape[1]) + R.T.dot(R)
 
 def computeRHS(U, U_nu, z0):
   F = ly.phi_x(z0, so.x)
@@ -25,7 +26,7 @@ def computeRHSreg(R, U, U_nu, z0, RHS=[]):
     RHS = computeRHS(U, U_nu, z0)
   return R.T.dot(RHS)
 
-h = 20
+h = 200
 n = 20
 c = 1. * (h + 1)/(h-1)
 
@@ -41,8 +42,8 @@ so = sg.Segment(nso, f=sg.circle, inargs=(1j, ro), periodic=True)
 
 rd  = 1
 nsd = rd * ns
-sd = sg.Segment(nsd, f=sg.circle, inargs=(0, rd), periodic=True)
-#sd = sg.Segment(nsd, f=sg.ellipse, inargs=(0, rd, 1.5*rd), periodic=True)
+#sd = sg.Segment(nsd, f=sg.circle, inargs=(0, rd), periodic=True)
+sd = sg.Segment(nsd, f=sg.ellipse, inargs=(0.3, rd, 2*rd), periodic=True)
 
 # (K' + 0.5 * c(h) * I) psi = -phi_nu
 
@@ -50,13 +51,13 @@ sd = sg.Segment(nsd, f=sg.circle, inargs=(0, rd), periodic=True)
 # b = sg.Boundary([s])
 # p = sg.Pointset(s.x)
 
-ld = sg.Layer(sd, ly.layerpotSD)
+ld = sg.Layer([sd], ly.layerpotSD)
 A = dpb.directA(ld, c)
 
 allpsi = np.empty((nsd, nsb), float)
 for k in range(nsb):
   z0 = sb.x[k]
-  rhs = dpb.directrhs(ld.b, z0)
+  rhs = dpb.directrhs(ld.b[0], z0)
   allpsi[:, k] = dpb.directpb(z0, ld, c, A, rhs)
 
 # Kp = l.exp(0, l.b, [], [])
@@ -73,15 +74,15 @@ for k in range(nsb):
 
 
 z0 = sb.x[0]
-x, y, pp = plot.meshgrid((-2, 2, 20))
-G = sg.Layer(b=sd, exp=ly.layerpotS, dns=allpsi[:,0])
+x, y, pp = plot.meshgrid((-2, 2, 40))
+G = sg.Layer(b=[sd], exp=ly.layerpotS, dns=allpsi[:,0])
 
 pp = sg.Pointset(pp)
 
 vv1 = sg.eval_layer(G, pp)
 vv2 = ly.fundsol(abs(pp.x - z0), 0)
 h = plt.figure()
-plot.plot(h, x, y, vv2 + vv1)
+plot.plot(x, y, vv2 + vv1)
 sd.plot(p=True)
 # so.plot(p=True)
 # sb.plot(p=True)
@@ -103,7 +104,7 @@ for k in range(nsb):
 U_psi = U_psi.T.dot(np.diag(so.w))
 U_psi_nu = U_psi_nu.T.dot(np.diag(so.w))
 
-lo = sg.Layer(so, ly.layerpotS)
+lo = sg.Layer([so], ly.layerpotS)
 U = ly.layerpotS(0, so, sb)
 U_nu = ly.layerpotD(0, so, sb)
 
@@ -113,14 +114,24 @@ U_nu = ly.layerpotD(0, so, sb)
 U = U + U_psi
 U_nu = U_nu + U_psi_nu
 
-lb = sg.Layer(sd, ly.layerpotS)
+lb = sg.Layer([sd], ly.layerpotS)
 V = ly.layerpotS(0, sb, so)
 V_nu = ly.layerpotSD(0, sb, so)
 
 R = U.dot(V_nu) - U_nu.dot(V)
 
+V2 = ly.layerpotD(0, sb, so)
+V2_nu = ly.layerpotDD(0, sb, so)
+R2 = U.dot(V2_nu) - U_nu.dot(V2)
 
 normf = np.empty(len(pp.x), float)
+
+a = 1e-12
+#R = np.concatenate((R.T, R2.T)).T
+# R = R2
+
+Rreg = computeRreg(R, a, nsb)
+(lu, piv) = lin.lu_factor(Rreg)
 for k in range(len(pp.x)):
   z0 = pp.x[k]
   #F_stored(:,k) = F;
@@ -128,21 +139,22 @@ for k in range(len(pp.x)):
   #RHS_stored(:,k) = RHS;
 
   #zeta = A \ RHS;
-  a = 1e-14;
-
-  Rreg = computeRreg(R, a, nsb)
   RHS = computeRHS(U, U_nu, z0)
   RHSreg = computeRHSreg(R, U, U_nu, z0, RHS)
     
-  zeta = solve(Rreg, RHSreg)
+  #zeta = lstq(Rreg, RHSreg)[0]
+  #zeta = solve(Rreg, RHSreg)
+  zeta = lin.lu_solve((lu, piv), RHSreg)
   #sum(F_nu .* so.w.'); % check null
     
   normf[k] = norm(RHS) / norm(zeta)
   #normf(k) = real(z0) * imag(z0) + real(z0);
+  #normf[k] = max(abs(solve(Rreg, RHSreg) - zeta))
 
 h = plt.figure()
-plot.plot(h, x, y, normf)
+plot.plot(x, y, normf,'cf')
 sd.plot(p=True)
+#so.plot(p=True)
 plt.show(block=True)
 
 R = np.array(R, float)

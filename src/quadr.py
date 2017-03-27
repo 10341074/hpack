@@ -14,7 +14,7 @@ def kress_Rjn(n):
   #  Copyright (C) 2008, 2009, Alex Barnett, Timo Betcke
 
   if (2 * n) % 2 == 1:
-    print 'kress_Rjn: N=2n must be even!'
+    print('kress_Rjn: N=2n must be even!')
   m = np.arange(1, n)
   Rjn = -2. * pi * ifft(np.concatenate(( [0], 1.0/m, [1.0/n], 1.0/m[::-1] )))
   return np.real(Rjn)

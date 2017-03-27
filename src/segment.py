@@ -2,11 +2,11 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-import my_type
 import plot
+import gradedmesh as graded
 import layerpot as ly
 
-from my_type import float_t
+from __types__ import *
 float = float_t
 # print np.dtype(float)
 
@@ -38,6 +38,13 @@ def kZp(t, a = []):
 def kZpp(t, a = []):
   return complex(-2*pi*2*pi*cos(2*pi*t) - 2 * 2 * 0.65 * 2*pi*2*pi*cos(2*2*pi*t) - 1j * 1.5 * sin(2*pi*t))
 
+def dZ(t, a = []):
+  return complex(2.0 * sin(2 * pi * t / 2) - 1j * sin(2 * pi * t))
+def dZp(t, a = []):
+  return complex(2 * pi / 2 * 2.0 * cos(2 * pi * t / 2) - 2 * pi * 1j * cos(2 * pi * t))
+def dZpp(t, a = []):
+  return complex(-2 * pi * 2 * pi / 4 * 2.0 * sin(2 * pi * t / 2) + 2 * pi * 2 * pi * 1j * sin(2 * pi * t))
+
 class Segment:
   def __init__(self, n, periodic=False, Z=cZ, Zp=cZp, Zpp=cZpp, args=[], f=[], inargs=[], quad='ps'):
     # 'p' periodic
@@ -49,6 +56,10 @@ class Segment:
       self.t = np.array([float(k) / n for k in range(n)], float)
       if quad == 'ps':
         self.t = self.t + 1. / 2 / n
+    elif quad == 'gp':
+      temp_s = np.array([float(k) / n for k in range(n)], float)
+      self.t = graded.w(2.0 * pi * temp_s) / 2 / pi
+      self.a = graded.wp(2.0 * pi * temp_s)
     else:
       self.t = np.array([float(k) / (n - 1) for k in range(n)], float)
     # trapezoidal nodes
@@ -62,8 +73,10 @@ class Segment:
     self.ddx = np.array([Zpp(t, *args) for t in self.t], np.cfloat)    
     # s.kappa = -real(conj(-1i*dZdt).*s.Zpp(s.t)) ./ s.speed.^3; %curvature
     self.kappa = -np.real(np.conj(-1j * self.dx) * self.ddx) / (self.speed**3) # signed curvature
-    if periodic:
+    if quad == 'p' or quad == 'ps' or periodic:
       self.w = np.array([sp / n for sp in self.speed], float)
+    elif quad == 'gp':
+      self.w = np.array([sp / n for sp in self.speed], float) * self.a      
     else:
       self.w = np.array([sp / (n-1) for sp in self.speed], float)
       self.w[0] = self.w[0] * 0.5
@@ -80,6 +93,7 @@ class Segment:
 class Boundary:
   def __init__(self, pieces=[]):
     self.pc = pieces
+    self.n = sum([len(pk.x) for pk in pc])
     self.x = np.array([z for p in pieces for z in p.x])
     self.nx = np.array([nx for p in pieces for nx in p.nx])
     self.speed = np.array([sp for p in pieces for sp in p.speed])
@@ -94,16 +108,32 @@ class Pointset:
 class Layer:
   def __init__(self, b=[], exp=[], dns=[]):
     self.b = b
+    self.n = sum([len(bk.x) for bk in b])
     if dns == []:
-      self.dns = np.ones(len(b.x))
-    else:
-      self.dns = dns
+      dns = np.ones(self.n)
+    self.dns = dns
     self.exp = exp
+  def eval_self(self, exp=[]):
+    if exp != []:
+      self.exp = exp
+    A = np.empty((self.n, self.n), float)
+    rcount, ccount = 0, 0
+    for bk in self.b:
+      for bksrc in self.b:
+        if bksrc is bk:
+          t = []
+        else:
+          t = bk
+        A[rcount : rcount + bk.n, ccount : ccount + bksrc.n] = self.exp(s=bksrc, t=t)
+        ccount = ccount + bksrc.n
+      ccount = 0
+      rcount = rcount + bk.n
+    return A
 
 def eval_layer(l, p, exp=[]):
   if exp == []:
     exp = l.exp
-  A = exp(0, l.b, p, [])
+  A = exp(k=0, s=l.b[0], t=p, o=[])
   v = A.dot(l.dns)
   return v
 
@@ -168,7 +198,7 @@ if __name__ == "__main__":
   # plt.show()
   
   h = plt.figure()
-  h = plot.plot(h, x,y,vv)
+  h = plot.plot(x,y,vv)
   
   plt.plot([x.real for x in s.x],[x.imag for x in s.x],'o-')
   plt.show()
