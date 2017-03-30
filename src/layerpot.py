@@ -9,6 +9,8 @@ log = np.log
 sin = np.sin
 real = np.real
 symmflagval = -999.; # all diag vals of this signifies symmetric - a hack
+def scalar(a, b):
+  return np.real(a * np.conj(b))
 
 def fundsol(r = [], k = 0):
   return -1.0 / 2 / pi * log(abs(r))
@@ -35,22 +37,38 @@ def phi_yy(z0=0, z=[]):
 def phi_xy(z0=0, z=[]):
   return 1. / 2 / pi * 2 / abs(z-z0)**3 * np.real(z-z0) * np.imag(z-z0) / abs(z-z0)
 
+def phi_xxx(z0=0, z=[]):
+  return 1. / 2 / pi * (-8) / abs(z-z0)**5 * np.real(z-z0) / abs(z-z0) * np.real(z-z0)**2 + 1. / 2 / pi * 4 / abs(z-z0)**4 * np.real(z-z0) + 1. / 2 / pi * 2/ abs(z-z0)**3 * np.real(z-z0) / abs(z-z0)
+def phi_xxy(z0=0, z=[]):
+  return 1. / 2 / pi * (-8) / abs(z-z0)**5 * np.imag(z-z0) / abs(z-z0) * np.real(z-z0)**2 + 1. / 2 / pi * 2/ abs(z-z0)**3 * np.imag(z-z0) / abs(z-z0)
+def phi_yyx(z0=0, z=[]):
+  return 1. / 2 / pi * (-8) / abs(z-z0)**5 * np.imag(z-z0) / abs(z-z0) * np.imag(z-z0)**2 + 1. / 2 / pi * 2/ abs(z-z0)**3 * np.real(z-z0) / abs(z-z0)
+def phi_yyy(z0=0, z=[]):
+  return 1. / 2 / pi * (-8) / abs(z-z0)**5 * np.imag(z-z0) / abs(z-z0) * np.imag(z-z0)**2 + 1. / 2 / pi * 4 / abs(z-z0)**4 * np.imag(z-z0) + 1. / 2 / pi * 2/ abs(z-z0)**3 * np.imag(z-z0) / abs(z-z0)
+
 def phi_x_p(z0=0, z=[]):
   return phi_xx(z0, z) + 1j * phi_xy(z0, z)
 def phi_y_p(z0=0, z=[]):
   return phi_xy(z0, z) + 1j * phi_yy(z0, z)
 
+def phi_l(z0=0, z=[]):
+  return phi_xx(z0, z) + phi_yy(z0, z)
+def phi_l_p(z0=0, z=[]):
+  return phi_xxx(z0, z) + phi_yyx(z0, z) + 1j * phi_xxy(z0, z) + 1j * phi_yyy(z0, z)
+
 def phi_x_n(z0=0, z=[], n=[]):
   return np.real(np.conj(n) * phi_x_p(z0, z))
 def phi_y_n(z0=0, z=[], n=[]):
   return np.real(np.conj(n) * phi_y_p(z0, z))
+def phi_l_n(z0=0, z=[], n=[]):
+  return scalar(phi_l_p(z0, z), n)
 
 def circulant_T(a=[]):
   A = circulant(a)
   A = A.T
   return A
 
-def layerpotS(k=0, s=[], t=[], o=[]):
+def layerpotS(k=0, s=[], t=[], o=[], nodiag=0):
   slf = 0
   if t == []:
     slf = 1
@@ -62,7 +80,7 @@ def layerpotS(k=0, s=[], t=[], o=[]):
   d = d.T
   d = d - np.array([s.x for k in range(M)])
   r = abs(d)
-  if slf:
+  if slf or nodiag:
     r[np.diag_indices(N)] = symmflagval
 
   A = fundsol(r, k)
@@ -135,9 +153,6 @@ def layerpotSD(k=0, s=[], t=[], o=[]):
   else:
     A = A.dot(np.diag(s.w))
   return A
-
-def scalar(a, b):
-  return np.real(a * np.conj(b))
 
 def layerpotDD(k=0, s=[], t=[], o=[]):
   slf = 0

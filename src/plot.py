@@ -5,6 +5,8 @@ from matplotlib import cm
 # import pylab
 import numpy as np
 
+import plot
+
 # def meshgrid((x1, x2, xn), (y1, y2, yn)=((), (), ())):
 def meshgrid(x1_x2_xn, y1_y2_yn=((), (), ())):
   x1, x2, xn = x1_x2_xn
@@ -27,25 +29,23 @@ def meshgrid(x1_x2_xn, y1_y2_yn=((), (), ())):
 # z = np.sin(xx**2 + yy**2) / (xx**2 + yy**2)
 # z = xx**2 + yy**2
 
-def plot(x, y, vv, t='im', fig=[]):
-  h = fig
+def plot(x, y, vv, t='im', fig=[], show=1):
+  fig = plt.figure()
   v = vv.reshape((len(y), len(x)))
   if t == 'cf':
-    h = plt.contourf(x, y, v, 20)
+    fig = plt.contourf(x, y, v, 40)
     plt.colorbar()
   elif t == 'im':
-    h = plt.imshow(np.array(v, 'float64'), extent = (x[0], x[-1], y[0], y[-1]))
+    fig = plt.imshow(np.array(v[::-1], 'float64'), extent = (x[0], x[-1], y[0], y[-1]))
     plt.colorbar()
   elif t == 'srf':
-    fig = plt.figure()
     ax = fig.gca(projection='3d')
     xx, yy = np.meshgrid(x, y, sparse=True)
     surf = ax.plot_surface(xx, yy, v, cmap=cm.coolwarm)
     fig.colorbar(surf)
     # surf = ax.plot_surface(X, Y, Z, cmap=cm.coolwarm, linewidth=0, antialiased=False)
-
   # h = pylab.imshow(v, interpolation='nearest')
   plt.axis('equal')
-  plt.show(block=False)
-  return h
-  
+  if show:
+    plt.show(block=False)
+  return fig

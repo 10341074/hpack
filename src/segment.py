@@ -39,18 +39,22 @@ def kZpp(t, a = []):
   return complex(-2*pi*2*pi*cos(2*pi*t) - 2 * 2 * 0.65 * 2*pi*2*pi*cos(2*2*pi*t) - 1j * 1.5 * sin(2*pi*t))
 
 def dZ(t, a = []):
-  return complex(2.0 * sin(2 * pi * t / 2) - 1j * sin(2 * pi * t))
+  return 0.5*(1+1j)*complex(2.0 * sin(2 * pi * t / 2) - 1j * sin(2 * pi * t))
 def dZp(t, a = []):
-  return complex(2 * pi / 2 * 2.0 * cos(2 * pi * t / 2) - 2 * pi * 1j * cos(2 * pi * t))
+  return 0.5*(1+1j)*complex(2 * pi / 2 * 2.0 * cos(2 * pi * t / 2) - 2 * pi * 1j * cos(2 * pi * t))
 def dZpp(t, a = []):
-  return complex(-2 * pi * 2 * pi / 4 * 2.0 * sin(2 * pi * t / 2) + 2 * pi * 2 * pi * 1j * sin(2 * pi * t))
+  return 0.5*(1+1j)*complex(-2 * pi * 2 * pi / 4 * 2.0 * sin(2 * pi * t / 2) + 2 * pi * 2 * pi * 1j * sin(2 * pi * t))
 
 class Segment:
-  def __init__(self, n, periodic=False, Z=cZ, Zp=cZp, Zpp=cZpp, args=[], f=[], inargs=[], quad='ps'):
+  def __init__(self, n, Z_args=((), (), (), ()), f_inargs=((), ()), Z=[], Zp=cZp, Zpp=cZpp, args=[], f=[], inargs=[], quad='ps', periodic=False):
     # 'p' periodic
     # 'ps' periodic shift
-    if f != []:
-      # print 'short form'
+    if Z == []: # line to be deleted
+      Z, Zp, Zpp, args = Z_args
+    if f == []: # line to be deleted
+      f, inargs = f_inargs
+    if f != [] and f!=():
+      # print('short form')
       (Z, Zp, Zpp, args) = f(*inargs)
     if quad == 'p' or quad == 'ps':
       self.t = np.array([float(k) / n for k in range(n)], float)
@@ -93,13 +97,16 @@ class Segment:
 class Boundary:
   def __init__(self, pieces=[]):
     self.pc = pieces
-    self.n = sum([len(pk.x) for pk in pc])
+    self.s = pieces
+    self.n = sum([len(pk.x) for pk in self.pc])
     self.x = np.array([z for p in pieces for z in p.x])
     self.nx = np.array([nx for p in pieces for nx in p.nx])
     self.speed = np.array([sp for p in pieces for sp in p.speed])
     self.kappa = np.array([k for p in pieces for k in p.kappa])
     self.w = np.array([w for p in pieces for w in p.w])
-  
+  def plot(self, p=False):
+    for sk in self.s:
+      sk.plot(p)
 
 class Pointset:
   def __init__(self, x=[]):
@@ -109,13 +116,22 @@ class Layer:
   def __init__(self, b=[], exp=[], dns=[]):
     self.b = b
     self.n = sum([len(bk.x) for bk in b])
+    self.exp = exp
     if dns == []:
       dns = np.ones(self.n)
     self.dns = dns
-    self.exp = exp
+    self.x = np.array([xk for bk in b for xk in bk.x])
+    self.nx = np.array([nxk for bk in b for nxk in bk.nx])
+    self.speed = np.array([sp for bk in b for sp in bk.speed])
+    self.kappa = np.array([k for bk in b for k in bk.kappa])
+    self.w = np.array([w for bk in b for w in bk.w])
+  def plot(self, p=False):
+    for bk in self.b:
+      bk.plot(p)
   def eval_self(self, exp=[]):
     if exp != []:
       self.exp = exp
+    # print('eval_self layer: ', self.exp)
     A = np.empty((self.n, self.n), float)
     rcount, ccount = 0, 0
     for bk in self.b:
@@ -133,7 +149,10 @@ class Layer:
 def eval_layer(l, p, exp=[]):
   if exp == []:
     exp = l.exp
-  A = exp(k=0, s=l.b[0], t=p, o=[])
+  A = np.empty((0,len(p.x)))
+  for bk in l.b:
+    A = np.concatenate((A, exp(s=bk, t=p).T))
+  A = A.T
   v = A.dot(l.dns)
   return v
 

@@ -10,6 +10,7 @@ from importlib import reload
 # modules contains classes, functions, __main__ to be tested
 import __types__
 import __data__
+import __tools__ # for help(__tools__)
 from __tools__ import *
 
 import layerpot as ly
