@@ -1,52 +1,59 @@
 #!../../venv/bin/python
+from numpy import pi, sin, cos
 import matplotlib.pyplot as plt
 import numpy as np
-
-import plot
-import gradedmesh as graded
-import layerpot as ly
 
 from __types__ import *
 float = float_t
 # print np.dtype(float)
 
-# from mpl_toolkits.mplot3d import Axes3D
-# from matplotlib import cm
+import plot
+import gradedmesh as graded
+# import shapes as sh
+import layerpot as ly
 
-pi = np.pi
-cos = np.cos
-sin = np.sin
 
-def cZ(t, c = 0, a = 1, b = 1):
-  return complex(c + a * cos(2 * pi * t) + 1j * b * sin(2 * pi * t))
-def cZp(t, c = 0, a = 1, b = 1):
-  return complex(-2 * pi * a * sin(2 * pi * t) + 1j * 2 * pi * b * cos(2 * pi * t))
-def cZpp(t, c = 0, a = 1, b = 1):
-  return complex(-2 * pi * 2 * pi * a * cos(2 * pi * t) - 1j * 2 * pi * 2 * pi * b * sin(2 * pi * t))
+#from shapes import * # to be subs with import shapes
+# def cZ(t, c = 0, a = 1, b = 1):
+#   return complex(c + a * cos(2 * pi * t) + 1j * b * sin(2 * pi * t))
+# def cZp(t, c = 0, a = 1, b = 1):
+#   return complex(-2 * pi * a * sin(2 * pi * t) + 1j * 2 * pi * b * cos(2 * pi * t))
+# def cZpp(t, c = 0, a = 1, b = 1):
+#   return complex(-2 * pi * 2 * pi * a * cos(2 * pi * t) - 1j * 2 * pi * 2 * pi * b * sin(2 * pi * t))
 
-def sZ(t, p = 0, q = 1):
-  return complex(p + t * (q - p))
-def sZp(t, p = 0, q = 1):
-  return complex(q - p)
-def sZpp(t, p = 0, q = 1):
-  return complex(0)
+# def sZ(t, p = 0, q = 1):
+#   return complex(p + t * (q - p))
+# def sZp(t, p = 0, q = 1):
+#   return complex(q - p)
+# def sZpp(t, p = 0, q = 1):
+#   return complex(0)
 
-def kZ(t, a = []):
-  return complex(cos(2*pi*t) + 0.65 * cos(2*2*pi*t) - 0.65 + 1j * 1.5 * sin(2*pi*t))
-def kZp(t, a = []):
-  return complex(-2*pi*sin(2*pi*t) - 2 * 0.65 * 2*pi*sin(2*2*pi*t) + 1j * 1.5 * 2*pi*cos(2*pi*t))
-def kZpp(t, a = []):
-  return complex(-2*pi*2*pi*cos(2*pi*t) - 2 * 2 * 0.65 * 2*pi*2*pi*cos(2*2*pi*t) - 1j * 1.5 * sin(2*pi*t))
+# def kZ(t, a = []):
+#   return complex(cos(2*pi*t) + 0.65 * cos(2*2*pi*t) - 0.65 + 1j * 1.5 * sin(2*pi*t))
+# def kZp(t, a = []):
+#   return complex(-2*pi*sin(2*pi*t) - 2 * 0.65 * 2*pi*sin(2*2*pi*t) + 1j * 1.5 * 2*pi*cos(2*pi*t))
+# def kZpp(t, a = []):
+#   return complex(-2*pi*2*pi*cos(2*pi*t) - 2 * 2 * 0.65 * 2*pi*2*pi*cos(2*2*pi*t) - 1j * 1.5 * sin(2*pi*t))
 
-def dZ(t, a = []):
-  return 0.5*(1+1j)*complex(2.0 * sin(2 * pi * t / 2) - 1j * sin(2 * pi * t))
-def dZp(t, a = []):
-  return 0.5*(1+1j)*complex(2 * pi / 2 * 2.0 * cos(2 * pi * t / 2) - 2 * pi * 1j * cos(2 * pi * t))
-def dZpp(t, a = []):
-  return 0.5*(1+1j)*complex(-2 * pi * 2 * pi / 4 * 2.0 * sin(2 * pi * t / 2) + 2 * pi * 2 * pi * 1j * sin(2 * pi * t))
+# def dZ(t, a = []):
+#   return 0.5*(1+1j)*complex(2.0 * sin(2 * pi * t / 2) - 1j * sin(2 * pi * t))
+# def dZp(t, a = []):
+#   return 0.5*(1+1j)*complex(2 * pi / 2 * 2.0 * cos(2 * pi * t / 2) - 2 * pi * 1j * cos(2 * pi * t))
+# def dZpp(t, a = []):
+#   return 0.5*(1+1j)*complex(-2 * pi * 2 * pi / 4 * 2.0 * sin(2 * pi * t / 2) + 2 * pi * 2 * pi * 1j * sin(2 * pi * t))
+
+# def circle(c = 0, r = 1):
+#   args=(c, r, r)
+#   return (cZ, cZp, cZpp, args)
+# def ellipse(c = 0, a = 1, b = 2):
+#   args=(c, a, b)
+#   return (cZ, cZp, cZpp, args)
+# def line(p = 0, q = 1):
+#   args=(p, q)
+#   return (sZ, sZp, sZpp, args)
 
 class Segment:
-  def __init__(self, n, Z_args=((), (), (), ()), f_inargs=((), ()), Z=[], Zp=cZp, Zpp=cZpp, args=[], f=[], inargs=[], quad='ps', periodic=False):
+  def __init__(self, n, Z_args=((), (), (), ()), f_inargs=((), ()), quad='ps', aff=(0, 1), Z=[], Zp=[], Zpp=[], args=[], f=[], inargs=[], periodic=False):
     # 'p' periodic
     # 'ps' periodic shift
     if Z == []: # line to be deleted
@@ -54,7 +61,6 @@ class Segment:
     if f == []: # line to be deleted
       f, inargs = f_inargs
     if f != [] and f!=():
-      # print('short form')
       (Z, Zp, Zpp, args) = f(*inargs)
     if quad == 'p' or quad == 'ps':
       self.t = np.array([float(k) / n for k in range(n)], float)
@@ -68,13 +74,13 @@ class Segment:
       self.t = np.array([float(k) / (n - 1) for k in range(n)], float)
     # trapezoidal nodes
     self.n = n
-    self.x = np.array([Z(t, *args) for t in self.t], np.cfloat)
+    self.x = np.array([Z(t, *args, aff=aff) for t in self.t], np.cfloat)
 
-    self.dx = np.array([Zp(t, *args) for t in self.t], np.cfloat)
+    self.dx = np.array([Zp(t, *args, aff=aff) for t in self.t], np.cfloat)
     self.speed = np.array(abs(self.dx), float)
     self.nx = np.array(-1j * self.dx / self.speed, np.cfloat)
 
-    self.ddx = np.array([Zpp(t, *args) for t in self.t], np.cfloat)    
+    self.ddx = np.array([Zpp(t, *args, aff=aff) for t in self.t], np.cfloat)    
     # s.kappa = -real(conj(-1i*dZdt).*s.Zpp(s.t)) ./ s.speed.^3; %curvature
     self.kappa = -np.real(np.conj(-1j * self.dx) * self.ddx) / (self.speed**3) # signed curvature
     if quad == 'p' or quad == 'ps' or periodic:
@@ -85,14 +91,14 @@ class Segment:
       self.w = np.array([sp / (n-1) for sp in self.speed], float)
       self.w[0] = self.w[0] * 0.5
       self.w[-1] = self.w[-1] * 0.5
-  def plot(self, p=False):
+  def plot(self, p=True):
     xx = [x.real for x in self.x]
     yy = [x.imag for x in self.x]
     if p:
       xx.append(xx[0])
       yy.append(yy[0])
     plt.plot(xx, yy,'o-')
-
+    plt.axis('equal')
 
 class Boundary:
   def __init__(self, pieces=[]):
@@ -104,7 +110,7 @@ class Boundary:
     self.speed = np.array([sp for p in pieces for sp in p.speed])
     self.kappa = np.array([k for p in pieces for k in p.kappa])
     self.w = np.array([w for p in pieces for w in p.w])
-  def plot(self, p=False):
+  def plot(self, p=True):
     for sk in self.s:
       sk.plot(p)
 
@@ -125,7 +131,7 @@ class Layer:
     self.speed = np.array([sp for bk in b for sp in bk.speed])
     self.kappa = np.array([k for bk in b for k in bk.kappa])
     self.w = np.array([w for bk in b for w in bk.w])
-  def plot(self, p=False):
+  def plot(self, p=True):
     for bk in self.b:
       bk.plot(p)
   def eval_self(self, exp=[]):
@@ -156,22 +162,17 @@ def eval_layer(l, p, exp=[]):
   v = A.dot(l.dns)
   return v
 
-def Z(t):
-   return complex(cos(2 * pi * t) + 1j * sin(2 * pi * t))
-def Zp(t):
-  return complex(2 * pi * cos(2 * pi * t) + 1j * 2 * pi * sin(2 * pi * t))
-def Zpp(t):
-  return complex(2 * pi * 2 * pi * cos(2 * pi * t) + 1j * 2 * pi * 2 * pi * sin(2 * pi * t))
+# def Z(t):
+#    return complex(cos(2 * pi * t) + 1j * sin(2 * pi * t))
+# def Zp(t):
+#   return complex(2 * pi * cos(2 * pi * t) + 1j * 2 * pi * sin(2 * pi * t))
+# def Zpp(t):
+#   return complex(2 * pi * 2 * pi * cos(2 * pi * t) + 1j * 2 * pi * 2 * pi * sin(2 * pi * t))
 
-def circle(c = 0, r = 1):
-  args=(c, r, r)
-  return (cZ, cZp, cZpp, args)
-def ellipse(c = 0, a = 1, b = 2):
-  args=(c, a, b)
-  return (cZ, cZp, cZpp, args)
-def line(p = 0, q = 1):
-  args=(p, q)
-  return (sZ, sZp, sZpp, args)
+
+
+
+
 ###########################################################
 if __name__ == "__main__":
 

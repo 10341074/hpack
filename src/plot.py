@@ -5,7 +5,6 @@ from matplotlib import cm
 # import pylab
 import numpy as np
 
-import plot
 
 # def meshgrid((x1, x2, xn), (y1, y2, yn)=((), (), ())):
 def meshgrid(x1_x2_xn, y1_y2_yn=((), (), ())):

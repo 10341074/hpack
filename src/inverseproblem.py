@@ -1,31 +1,42 @@
 # from domain import *
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.linalg import solve
-from scipy.linalg import lstsq
+# from scipy.linalg import solve
+# from scipy.linalg import lstsq
 from numpy.linalg import norm
 from numpy.linalg import cond
 import scipy.linalg as linalg
+import numpy.linalg
+import time
 
 from __types__ import *
+import shapes as sh
 import layerpot as ly
 import segment as sg
 import plot
 import directproblem as dpb
 
-verbose=1
+verbose = 1
 
-def computeRreg(R, a, nsb):
+def computeRtikh(R, a):
   return a * np.eye(R.shape[1]) + R.T.dot(R)
 
-def computeRHS(U, U_nu, z0):
-  F = ly.phi_l(z0, so.x)
-  F_nu = ly.phi_l_n(z0, so.x, so.nx)
+def computeRHS(R, U, U_nu, z0, so, theta=0):
+  F = np.cos(theta) * ly.phi_x(z0, so.x) + np.sin(theta) * ly.phi_y(z0, so.x)
+  F_nu = np.cos(theta) * ly.phi_x_n(z0, so.x, so.nx) + np.sin(theta) * ly.phi_y_n(z0, so.x, so.nx)
   return U.dot(F_nu) - U_nu.dot(F)
 
-def computeRHSreg(R, U, U_nu, z0, RHS=[]):
+def computeRHStikh(R, U, U_nu, z0, so, theta=0, RHS=[]):
   if RHS == []:
-    RHS = computeRHS(U, U_nu, z0)
+    RHS = computeRHS(R, U, U_nu, z0, so, theta)
+  return R.T.dot(RHS)
+
+def computeRlstsq(R):
+  return R.T.dot(R)
+
+def computeRHSlstsq(R, U, U_nu, z0, so, RHS=[]):
+  if RHS == []:
+    RHS = computeRHS(R, U, U_nu, z0, so)
   return R.T.dot(RHS)
 
 def computek(zeta, z0, ld, lb):
@@ -45,35 +56,6 @@ def computek(zeta, z0, ld, lb):
   nn = (nn**2).dot(ld.w)
   return nn
 
-def domain():
-  n = 40
-  ns = n
-
-  rb  = 10
-  nsb = rb * ns
-  sb = sg.Segment(nsb, f=sg.circle, inargs=(0, rb), quad='ps')
-
-  ro  = 6
-  nso = ro * ns
-  so = sg.Segment(nso, f=sg.circle, inargs=(1, ro), quad='ps')
-
-  rd  = 1
-  nsd = rd * ns
-  sd = sg.Segment(nsd, f=sg.circle, inargs=(0, rd), periodic=True)
-  # sd = sg.Segment(nsd, f=sg.ellipse, inargs=(0.3, rd, 1.5*rd), periodic=True)
-  # nsd = 60
-  # sd = sg.Segment(nsd, Z=sg.dZ, Zp=sg.dZp, Zpp=sg.dZpp, args=[], quad='gp')
-  sd = sg.Segment(nsd, f=sg.circle, inargs=(0, rd), quad='ps')
-
-  bd1 = sg.Boundary([sd])
-  ld = sg.Layer([bd1], ly.layerpotSD)
-  return (ld, so, sb)
-
-h = 200.0
-c = 1. * (h + 1)/(h-1)
-ld, so, sb = domain()
-nsd, nso, nsb = ld.n, so.n, sb.n
-
 def computeallpsi(ld, sb, c):
   nsd = ld.n
   nsb = sb.n
@@ -85,94 +67,106 @@ def computeallpsi(ld, sb, c):
     allpsi[:, k] = dpb.directpb(l=ld, c=c, z0=z0, A_f = (A, linalg.solve), rhs=rhs)
   return allpsi
 
+def computeR(allpsi, ld, so, sb, sv=(), testset=1):
+  if sv == ():
+    sv = sb
+  sd = ld.b[0]
+  nso, nsb = so.n, sb.n
+
+  U_psi = np.empty((nso, nsb), float)
+  U_psi_nu = np.empty((nso, nsb), float)
+  # kerS = sg.eval_layer(ld, so, exp = ly.layerpotS)
+  # kerSD = sg.eval_layer(ld, so, exp = ly.layerpotSD)
+  kerS = ly.layerpotS(0, sd, so)
+  kerSD = ly.layerpotSD(0, sd, so)
+
+  for k in range(nsb):
+    U_psi[:,k] = kerS.dot(allpsi[:,k])
+    U_psi_nu[:,k] = kerSD.dot(allpsi[:,k])
+
+  # U_psi = np.diag(so.w) * U_psi
+  # U_psi_nu = np.diag(so.w) * U_psi_nu
+  U_psi = U_psi.T.dot(np.diag(so.w))
+  U_psi_nu = U_psi_nu.T.dot(np.diag(so.w))
+
+  U = ly.layerpotS(s=so, t=sb)
+  U_nu = ly.layerpotD(s=so, t=sb)
+
+  # U = U + U_psi.';
+  # U_nu = U_nu + U_psi_nu.';
   
-allpsi = computeallpsi(ld, sb, c)
-dpb.plotdpb(ld, sb.x[0], (-2, 2, 100), psi = allpsi[:,0], t='im')
+  U = U + U_psi
+  U_nu = U_nu + U_psi_nu
 
+  #lb = sg.Layer([sd], ly.layerpotS)
+  testset = 1
+  if testset == 1 or testset == 3:
+    V1 = ly.layerpotS(s=sv, t=so)
+    V1_nu = ly.layerpotSD(s=sv, t=so)
+    R1 = U.dot(V1_nu) - U_nu.dot(V1)
+    R = R1
+  if testset == 2 or testset == 3:
+    V2 = ly.layerpotD(s=sv, t=so)
+    V2_nu = ly.layerpotDD(s=sb, t=so)
+    R2 = U.dot(V2_nu) - U_nu.dot(V2)
+    R = R2
+  if testset == 3:
+    R = np.concatenate((R1.T, R2.T)).T
+  if verbose:
+    print('R.shape = ', R.shape)
+  return (R, U, U_nu)
 
-sd = ld.b[0]
-U_psi = np.empty((nso, nsb), float)
-U_psi_nu = np.empty((nso, nsb), float)
-# kerS = sg.eval_layer(ld, so, exp = ly.layerpotS)
-# kerSD = sg.eval_layer(ld, so, exp = ly.layerpotSD)
-kerS = ly.layerpotS(0, sd, so)
-kerSD = ly.layerpotSD(0, sd, so)
+def gap_init(R, a, reg, regmet, solver):
+  if reg or reg ==1:
+    if regmet == 'tikh':
+      Rreg = computeRtikh(R, a)
+      _A_b = (Rreg, computeRHStikh)
+  else:
+    _A_b = (R, computeRHS)
 
-for k in range(nsb):
-  U_psi[:,k] = kerS.dot(allpsi[:,k])
-  U_psi_nu[:,k] = kerSD.dot(allpsi[:,k])
-# U_psi = np.diag(so.w) * U_psi
-# U_psi_nu = np.diag(so.w) * U_psi_nu
-U_psi = U_psi.T.dot(np.diag(so.w))
-U_psi_nu = U_psi_nu.T.dot(np.diag(so.w))
+  if solver == 's':
+    _gap_s = (linalg.solve, _A_b[0], _A_b[1])
+    _gap = _gap_s
+  elif solver == 'lu':
+    (lu, piv) = linalg.lu_factor(_A_b[0])
+    _gap_lu = (linalg.lu_solve, (lu, piv), _A_b[1])
+    _gap = _gap_lu
+  elif solver == 'lstsq':
+    _gap_lstsq = (linalg.lstsq, _A_b[0], _A_b[1])
+    _gap = _gap_lstsq # to change
+  else:
+    print('Error: not valid solver')
+  return _gap
 
-U = ly.layerpotS(0, so, sb)
-U_nu = ly.layerpotD(0, so, sb)
+def computeallsolsgap(_gap, pp, R, U, U_nu, so, theta=0):
+  ninv = np.empty(len(pp.x), float)
+  #res = np.empty((len(pp.x), 1), float)
+  #nsolgap= np.empty((len(pp.x), 1), float)
+  res=()
+  nsolgap=()
+  # nn = np.empty(len(pp.x), float)
+  (lu, piv) = linalg.lu_factor(computeRtikh(R, 1e-14))
+  for k in range(len(pp.x)):
+    z0 = pp.x[k]
+    RHS = computeRHS(R, U, U_nu, z0, so, theta)
+    RHSreg = computeRHStikh(R, U, U_nu, z0, so, theta)
+    # zeta = _gap[0](_gap[1], _gap[2](R, U, U_nu, z, so, theta))[0]
+    zeta = linalg.lu_solve((lu, piv), RHSreg)
+#    res[k]= norm(R.dot(zeta) - RHS)
+#    nsolgap[k]= norm(zeta)
+    time.sleep(0.001)  
+    ninv[k] = norm(RHS) / norm(zeta)
+    # if abs(z0) < 1e-10:
+    #   print('k= ',computek(zeta, z0, ld2, lb))
+    #nn[k] = computek(zeta, z0, ld, lb)
+    #normf(k) = real(z0) * imag(z0) + real(z0);
+    #normf[k] = max(abs(solve(Rreg, RHSreg) - zeta))
+    # print('residual= ',linalg.norm(Rreg.dot(zeta)-RHSreg))
+    # print('residual2= ',linalg.norm(R.dot(zeta)-RHS))
+    #sum(F_nu .* so.w.'); % check null
+  return (ninv, res, nsolgap)
 
-# U = U + U_psi.';
-# U_nu = U_nu + U_psi_nu.';
-
-U = U + U_psi
-U_nu = U_nu + U_psi_nu
-
-#lb = sg.Layer([sd], ly.layerpotS)
-testset = 3
-if testset == 1 or testset == 3:
-  V1 = ly.layerpotS(0, sb, so)
-  V1_nu = ly.layerpotSD(0, sb, so)
-  R1 = U.dot(V1_nu) - U_nu.dot(V1)
-  R = R1
-if testset == 2 or testset == 3:
-  V2 = ly.layerpotD(0, sb, so)
-  V2_nu = ly.layerpotDD(0, sb, so)
-  R2 = U.dot(V2_nu) - U_nu.dot(V2)
-  R = R2
-if testset == 3:
-  R = np.concatenate((R1.T, R2.T)).T
-if verbose:
-  print('R shape ', R.shape)
-
-
-bb = sg.Boundary([sb])
-lb = sg.Layer(b=[bb])
-x, y, pp = plot.meshgrid((-2, 2 , 20))
-pp = sg.Pointset(pp)
-
-normf = np.empty(len(pp.x), float)
-nn = np.empty(len(pp.x), float)
-a = 1e-12
-
-Rreg = computeRreg(R, a, nsb)
-(lu, piv) = linalg.lu_factor(Rreg)
-for k in range(len(pp.x)):
-  z0 = pp.x[k]
-  #F_stored(:,k) = F;
-  #F_nu_stored(:,k) = F_nu;
-  #RHS_stored(:,k) = RHS;
-
-  #zeta = A \ RHS;
-  RHS = computeRHS(U, U_nu, z0)
-  RHSreg = computeRHSreg(R, U, U_nu, z0, RHS)
-  
-  #zeta = lstq(Rreg, RHSreg)[0]
-  #zeta = solve(Rreg, RHSreg)
-  zeta = linalg.lu_solve((lu, piv), RHSreg)
-  #sum(F_nu .* so.w.'); % check null
-
-  
-  normf[k] = norm(RHS) / norm(zeta)
-  # if abs(z0) < 1e-10:
-  #   print('k= ',computek(zeta, z0, ld2, lb))
-  #nn[k] = computek(zeta, z0, ld, lb)
-  #normf(k) = real(z0) * imag(z0) + real(z0);
-  #normf[k] = max(abs(solve(Rreg, RHSreg) - zeta))
-
-
-plot.plot(x, y, normf,'cf')
-sd.plot(p=True)
-#so.plot(p=True)
-plt.show(block=True)
-
-R = np.array(R, float)
-Rreg = np.array(Rreg, float)
-
+def meshgrid(x1_x2_xn, y1_y2_yn=((), (), ())):
+  x, y, pp = plot.meshgrid(x1_x2_xn, y1_y2_yn)
+  pp = sg.Pointset(pp)
+  return (x, y, pp)
