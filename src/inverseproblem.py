@@ -21,7 +21,9 @@ verbose = 1
 def computeRtikh(R, a):
   return a * np.eye(R.shape[1]) + R.T.dot(R)
 
-def computeRHS(R, U, U_nu, z0, so, theta=0):
+def computeRHS(R, U, U_nu, z0, so, theta=0, RHS=[]):
+  if RHS != []:
+    return RHS
   F = np.cos(theta) * ly.phi_x(z0, so.x) + np.sin(theta) * ly.phi_y(z0, so.x)
   F_nu = np.cos(theta) * ly.phi_x_n(z0, so.x, so.nx) + np.sin(theta) * ly.phi_y_n(z0, so.x, so.nx)
   return U.dot(F_nu) - U_nu.dot(F)
@@ -125,18 +127,29 @@ def gap_init(R, a, reg, regmet, solver):
     _A_b = (R, computeRHS)
 
   if solver == 's':
-    _gap_s = (linalg.solve, _A_b[0], _A_b[1])
+    # _gap_s = (linalg.solve, _A_b[0], _A_b[1])
+    _gap_s = (_solve, _A_b[0], _A_b[1])
     _gap = _gap_s
   elif solver == 'lu':
     (lu, piv) = linalg.lu_factor(_A_b[0])
-    _gap_lu = (linalg.lu_solve, (lu, piv), _A_b[1])
+    # _gap_lu = (linalg.lu_solve, (lu, piv), _A_b[1])
+    _gap_lu = (_lu, (lu, piv), _A_b[1])
     _gap = _gap_lu
   elif solver == 'lstsq':
-    _gap_lstsq = (linalg.lstsq, _A_b[0], _A_b[1])
+    # _gap_lstsq = (linalg.lstsq, _A_b[0], _A_b[1])
+    _gap_lstsq = (_lstsq, _A_b[0], _A_b[1])
     _gap = _gap_lstsq # to change
   else:
     print('Error: not valid solver')
   return _gap
+
+def _solve(_m, _rhs):
+  return linalg.solve(_m, _rhs)
+def _lu(_m, _rhs):
+  return linalg.lu_solve(_m, _rhs)
+def _lstsq(_m, _rhs):
+  return linalg.lstsq(_m, _rhs)[0]
+
 
 def computeallsolsgap(_gap, pp, R, U, U_nu, so, theta=0):
   ninv = np.empty(len(pp.x), float)
@@ -145,15 +158,17 @@ def computeallsolsgap(_gap, pp, R, U, U_nu, so, theta=0):
   res=()
   nsolgap=()
   # nn = np.empty(len(pp.x), float)
-  (lu, piv) = linalg.lu_factor(computeRtikh(R, 1e-14))
+  # (lu, piv) = linalg.lu_factor(computeRtikh(R, 1e-14))
   for k in range(len(pp.x)):
     z0 = pp.x[k]
     RHS = computeRHS(R, U, U_nu, z0, so, theta)
-    RHSreg = computeRHStikh(R, U, U_nu, z0, so, theta)
+    # RHSreg = computeRHStikh(R, U, U_nu, z0, so, theta, RHS=RHS)
+    _gap_rhs =  _gap[2](R, U, U_nu, z0, so, theta, RHS=RHS)
+    zeta = _gap[0](_gap[1], _gap_rhs)
     # zeta = _gap[0](_gap[1], _gap[2](R, U, U_nu, z, so, theta))[0]
-    zeta = linalg.lu_solve((lu, piv), RHSreg)
-#    res[k]= norm(R.dot(zeta) - RHS)
-#    nsolgap[k]= norm(zeta)
+    # zeta = linalg.lu_solve((lu, piv), RHSreg)
+    # res[k]= norm(R.dot(zeta) - RHS)
+    # nsolgap[k]= norm(zeta)
     time.sleep(0.001)  
     ninv[k] = norm(RHS) / norm(zeta)
     # if abs(z0) < 1e-10:

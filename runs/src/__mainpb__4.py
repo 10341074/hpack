@@ -6,12 +6,12 @@ h = 200.0
 nsrc = 20
 
 R = ()
-a = 1e-12
-reg = 0
+a = 1e-16
+reg = 1
 regmet = 'tikh'
-solver = 'lstsq'
+solver = 'lu'
 
-theta = np.pi/4
+theta = 0
 #########
 
 def x3domain():
@@ -28,8 +28,8 @@ def x3domain():
   rd  = 1
   nsd = rd * ns
   sd = sg.Segment(nsd, f_inargs = (sh.circle, (0, rd)), quad='ps')
-  sd = sg.Segment(nsd, f_inargs = (sh.ellipse, (0, rd, 2*rd)), quad='ps')
-  sd = sg.Segment(nsd, Z_args = (sh.dZ, sh.dZp, sh.dZpp, ()), quad='gp', aff=(0, 0.8 + 0.8j))
+  #sd = sg.Segment(nsd, f_inargs = (sh.ellipse, (0, rd, 2*rd)), quad='ps')
+  #sd = sg.Segment(nsd, Z_args = (sh.dZ, sh.dZp, sh.dZpp, ()), quad='gp', aff=(2,1j))
 
   bd1 = sg.Boundary([sd])
   ld = sg.Layer([bd1], ly.layerpotSD)

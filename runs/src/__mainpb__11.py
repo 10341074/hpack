@@ -7,11 +7,11 @@ nsrc = 20
 
 R = ()
 a = 1e-12
-reg = 0
+reg = 1
 regmet = 'tikh'
-solver = 'lstsq'
+solver = 'lu'
 
-theta = np.pi/4
+theta = 0
 #########
 
 def x3domain():
