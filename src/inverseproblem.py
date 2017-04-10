@@ -231,7 +231,7 @@ def NtoD_init(LL0, a, reg, regmet, solver):
       Rreg = computeRtikh(LL0, a)
       _A_b = (Rreg, computeRHSNtoDtikh)
   else:
-    _A_b = (R, computeRHSNtoD)
+    _A_b = (LL0, computeRHSNtoD)
 
   if solver == 's':
     # _gap_s = (linalg.solve, _A_b[0], _A_b[1])
@@ -261,7 +261,7 @@ def computeallsolsNtoD(_NtoD, pp, LL0, so, theta=0):
   for k in range(len(pp.x)):
     z0 = pp.x[k]
     RHS = ly.phi_theta(z0, so.x, theta)
-    RHSreg = LL0.T.dot(RHS)
+    #RHSreg = LL0.T.dot(RHS)
     _NtoD_rhs =  _NtoD[2](LL0, z0, so, theta, RHS=RHS)
     zeta = _NtoD[0](_NtoD[1], _NtoD_rhs)
     # zeta = _gap[0](_gap[1], _gap[2](R, U, U_nu, z, so, theta))[0]

@@ -10,10 +10,10 @@ h = 200.0
 nsrc = 20
 
 R = ()
-a = 1e-12
+a = 1e-16
 reg = 1
 regmet = 'tikh'
-solver = 'lu'
+solver = 'lstsq'
 
 theta = 0
 #########
@@ -72,53 +72,50 @@ def method_gap():
   plt.savefig('fig_ninv.svg')
   return
 
+def method_NtoD():
+  c = 1.0 * (h + 1) / (h - 1)
+  print(c)
+  ld, so, sb = x3domain()
+  nsd, nso, nsb = ld.n, so.n, sb.n
+
+  LL0 = computeLL0(ld, so, sb, c, testset=0)
+  _NtoD = NtoD_init(LL0, a, reg, regmet, solver)
+  
+  x, y, pp = meshgrid((-2, 2 , 40))
+  
+  (ninv, res, nsolgap) = computeallsolsNtoD(_NtoD, pp, LL0, so, theta)
+  
+  plot.plot(x, y, ninv,'im')
+  ld.plot(p=True)
+  plt.show(block=False)
+  return
+
 c = 1.0 * (h + 1) / (h - 1)
 print(c)
 ld, so, sb = x3domain()
 nsd, nso, nsb = ld.n, so.n, sb.n
 
-# method_gap()
+method_gap()
+method_NtoD()
 tt = time.time() - tt
 tc = time.clock() - tc
 
 print('time wall-clock = ', tt)
 print('time clock = ', tc)
 
-
-g = ly.phi_n(-8, so.x, so.n)
-#g = np.ones(so.n)
-psi0 = dpb.mapNtoD0(so, g)
-bo = sg.Boundary([so])
-lo = sg.Layer([bo], dns=psi0)
-
-dpb.plotdpb(lo, (), (-8, 8, 100), t='im')
-
-
-psi = dpb.mapNtoD(so, ld, g, c)
-lo.dns = psi[0:lo.n]
-ld.dns = psi[lo.n:]
-
-dpb.plotdpb(lo, (), (-8, 8, 100), t='im', l2=ld)
-
-LL0 = computeLL0(ld, so, sb, c, testset=0)
-_NtoD = NtoD_init(LL0, a, reg, regmet, solver)
-
-x, y, pp = meshgrid((-2, 2 , 40))
-
-(ninv, res, nsolgap) = computeallsolsNtoD(_NtoD, pp, LL0, so, theta)
-
-plot.plot(x, y, ninv,'im')
-ld.plot(p=True)
-plt.show(block=False)
-
-
 end = input('Press enter')
 
+def test_NtoD():
+  g = ly.phi_n(-8, so.x, so.n)
+  #g = np.ones(so.n)
+  psi0 = dpb.mapNtoD0(so, g)
+  bo = sg.Boundary([so])
+  lo = sg.Layer([bo], dns=psi0)
+  
+  dpb.plotdpb(lo, (), (-8, 8, 100), t='im')
 
-# Kp = ly.layerpotSD(s=so)
-# Kpa = Kp
-# n = len(Kpa)
-# Kpa[np.diag_indices(n)] = Kpa[np.diag_indices(n)] + 0.5
-
-# print('det Kps = ', numpy.linalg.det(np.array(Kps, float)))
-# print('det Kps2 = ', numpy.linalg.det(np.array(Kps2, float)))
+  psi = dpb.mapNtoD(so, ld, g, c)
+  lo.dns = psi[0:lo.n]
+  ld.dns = psi[lo.n:]
+  dpb.plotdpb(lo, (), (-8, 8, 100), t='im', l2=ld)
+  return
