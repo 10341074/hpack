@@ -152,11 +152,11 @@ def _lstsq(_m, _rhs):
 
 
 def computeallsolsgap(_gap, pp, R, U, U_nu, so, theta=0):
+  res = ()
+  nsolgap = ()
   ninv = np.empty(len(pp.x), float)
-  #res = np.empty((len(pp.x), 1), float)
-  #nsolgap= np.empty((len(pp.x), 1), float)
-  res=()
-  nsolgap=()
+  # res = np.empty((len(pp.x), 1), float)
+  # nsolgap= np.empty((len(pp.x), 1), float)
   # nn = np.empty(len(pp.x), float)
   # (lu, piv) = linalg.lu_factor(computeRtikh(R, 1e-14))
   for k in range(len(pp.x)):
@@ -171,14 +171,8 @@ def computeallsolsgap(_gap, pp, R, U, U_nu, so, theta=0):
     # nsolgap[k]= norm(zeta)
     time.sleep(0.001)  
     ninv[k] = norm(RHS) / norm(zeta)
-    # if abs(z0) < 1e-10:
-    #   print('k= ',computek(zeta, z0, ld2, lb))
-    #nn[k] = computek(zeta, z0, ld, lb)
-    #normf(k) = real(z0) * imag(z0) + real(z0);
-    #normf[k] = max(abs(solve(Rreg, RHSreg) - zeta))
     # print('residual= ',linalg.norm(Rreg.dot(zeta)-RHSreg))
     # print('residual2= ',linalg.norm(R.dot(zeta)-RHS))
-    #sum(F_nu .* so.w.'); % check null
   return (ninv, res, nsolgap)
 
 def meshgrid(x1_x2_xn, y1_y2_yn=((), (), ())):

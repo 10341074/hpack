@@ -186,3 +186,5 @@ def layerpotDD(k=0, s=[], t=[], o=[]):
   else:
     A = A.dot(np.diag(s.w))
   return A
+
+    

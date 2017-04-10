@@ -5,15 +5,28 @@ import numpy as np
 from scipy.linalg import solve
 import scipy.linalg as linalg
 import numpy.linalg
+import scipy.sparse.linalg
 
 from __types__ import *
 import layerpot as ly
 import segment as sg
 import plot
 
-verbose=0
+verbose=1
 
 # (K' + 0.5 * c(h) * I) psi = -phi_nu
+def gramschmidt(s0, E=()):
+  n = len(s0)
+  if E == ():
+    E = np.diagflat(np.ones((n, 1)))
+  S = np.empty((n, n))
+  S[0] = s0 / numpy.linalg.norm(s0)
+  for k in range(1, n):
+    S[k] = E[k]
+    for j in range(k):
+      S[k] = S[k] - E[k].dot(S[j]) * S[j]
+    S[k] = S[k] / numpy.linalg.norm(S[k])
+  return S.T
 
 def directA(l, c): # to delete
   Kp = l.exp(0, l.b[0], [], [])
@@ -55,7 +68,7 @@ def directpb(l, c, z0, A_f=((), ()), rhs=[]):
   psi = solutor(A, rhs)
   return psi
 
-def plotdpb(l, z0, x1_x2_xn, y1_y2_yn=((), (), ()), psi=(), t='im'):
+def plotdpb(l, z0, x1_x2_xn, y1_y2_yn=((), (), ()), psi=(), t='im', l2=()):
   x, y, pp = plot.meshgrid(x1_x2_xn, y1_y2_yn)
   lPsi = sg.Layer(b=l.b, exp=ly.layerpotS, dns=l.dns)
   if psi != ():
@@ -63,9 +76,16 @@ def plotdpb(l, z0, x1_x2_xn, y1_y2_yn=((), (), ()), psi=(), t='im'):
   pp = sg.Pointset(pp)
   #uPsi = sg.eval_layer(lPsi, pp)
   uPsi = ly.layerpotS(s=l.b[0], t=pp).dot(lPsi.dns)
-  uPhi = ly.fundsol(abs(pp.x - z0), 0)
+  if z0 != ():
+    uPhi = ly.fundsol(abs(pp.x - z0), 0)
+  else:
+    uPhi = np.zeros(uPsi.shape)
+  if l2 != ():
+    l2Psi = sg.Layer(b=l2.b, exp=ly.layerpotS, dns=l2.dns)
+    uPsi = uPsi + ly.layerpotS(s=l2.b[0], t=pp).dot(l2Psi.dns)
+    
   plot.plot(x, y, uPsi + uPhi, t=t, show=0)
-  l.plot(p=True)
+  # l.plot(p=True)
   # so.plot(p=True)
   # sb.plot(p=True)
   # print('z0', z0 )
@@ -117,18 +137,65 @@ if __name__ == "__main__":
   # s.plot(p=True)
   plt.show(block=True)
   
-def mapNtoD(l, g):
-  Kp = l.eval_self(exp=ly.layerpotSD)
-  Kp2 = ly.layerpotSD(s=l.b[0])
+def mapNtoD0(l, g):
+  # Kp = l.eval_self(exp=ly.layerpotSD)
+  Kp = ly.layerpotSD(s=l)
   # print('check ', max([max(abs(r)) for r in Kp - Kp2]))
   
   Kpa = Kp
-  Kpa[np.diag_indices(l.n)] = Kpa[np.diag_indices(l.n)] - 0.5
+  Kpa[np.diag_indices(l.n)] = Kpa[np.diag_indices(l.n)] + 0.5
   if verbose:
     print('mapNtoD condition number= ', numpy.linalg.cond(np.array(Kpa, float)))
-  phi = linalg.solve(Kpa, g)
-  sl = sg.Layer(b=l.b, exp=ly.layerpotS, dns=phi)
-  S = sl.eval_self()
-  trace = S.dot(sl.dns)
-  return trace
+    print('mapNtoD determninant= ', numpy.linalg.det(np.array(Kpa, float)))
+  n = len(Kpa)
+  psi = np.ones(n)
+  S = gramschmidt(psi)
+  Kps = S.T.dot(Kpa.dot(S))
+  Kps2 = Kps[1::, 1::]
+  gs = S.T.dot(g)
+  gs2 = gs[1::]
+
+  # phi2 = scipy.sparse.linalg.cg(Kps2, gs2)[0]
+  phi2 = linalg.solve(Kps2, gs2)
+  phi = np.concatenate(([0], phi2 ))
+
+  # phi = linalg.solve(Kps, gs) # check error
+  print('residual = ', numpy.linalg.norm(Kps2.dot(phi2) - gs2))
+  return S.dot(phi)
+
+def mapNtoD(lo, ld, g, c):
+  no = lo.n
+  nd = ld.n
+  Kpd = ly.layerpotSD(s=ld)
+  Kpo = ly.layerpotSD(s=lo)
+  Kpd[np.diag_indices(nd)] = Kpd[np.diag_indices(nd)] + 0.5 * c
+  Kpo[np.diag_indices(no)] = Kpo[np.diag_indices(no)] + 0.5
+  Kd2o = ly.layerpotSD(s=ld, t=lo)
+  Ko2d = ly.layerpotSD(s=lo, t=ld)
+
+  psi = np.ones(no)
+  S = gramschmidt(psi)
+  Kpo = Kpo.dot(S)
+  Ko2d = Ko2d.dot(S)
   
+  row1 = np.concatenate((Kpo.T, Kd2o.T)).T
+  row2 = np.concatenate((Ko2d.T, Kpd.T)).T
+  Ks = np.concatenate((S.T.dot(row1), row2))
+  Ks2 = Ks[1::,1::]
+  gs = np.concatenate((S.T.dot(g), np.zeros(nd)))
+  gs2 = gs[1::]
+  if verbose:
+    print('mapNtoD condition number= ', numpy.linalg.cond(np.array(Ks, float)))
+    print('mapNtoD determninant= ', numpy.linalg.det(np.array(Ks, float)))
+  phi2 = linalg.solve(Ks2, gs2)
+  # phi = scipy.sparse.linalg.cg(Kpa, g)[0]
+  print('residual = ', numpy.linalg.norm(Ks2.dot(phi2) - gs2))
+  print('residual2 = ', numpy.linalg.norm(row2[:,1::].dot(phi2) - gs2[-nd::]))
+
+  phi = np.concatenate(([0], phi2 ))
+  phi = np.concatenate((S.dot(phi[0:no]), phi[no::]))
+  # S = ly.layerpotS(s=l)
+  # trace = S.dot(phi)
+  return phi
+
+    
