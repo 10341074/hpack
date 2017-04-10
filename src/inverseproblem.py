@@ -28,7 +28,7 @@ def computeRHS(R, U, U_nu, z0, so, theta=0, RHS=[]):
   F_nu = np.cos(theta) * ly.phi_x_n(z0, so.x, so.nx) + np.sin(theta) * ly.phi_y_n(z0, so.x, so.nx)
   return U.dot(F_nu) - U_nu.dot(F)
 
-def computeRHStikh(R, U, U_nu, z0, so, theta=0, RHS=[]):
+def computeRHStikh(R, U=(), U_nu=(), z0=(), so=(), theta=0, RHS=[]):
   if RHS == []:
     RHS = computeRHS(R, U, U_nu, z0, so, theta)
   return R.T.dot(RHS)
@@ -109,7 +109,7 @@ def computeR(allpsi, ld, so, sb, sv=(), testset=1):
     R = R1
   if testset == 2 or testset == 3:
     V2 = ly.layerpotD(s=sv, t=so)
-    V2_nu = ly.layerpotDD(s=sb, t=so)
+    V2_nu = ly.layerpotDD(s=sv, t=so)
     R2 = U.dot(V2_nu) - U_nu.dot(V2)
     R = R2
   if testset == 3:
@@ -119,7 +119,7 @@ def computeR(allpsi, ld, so, sb, sv=(), testset=1):
   return (R, U, U_nu)
 
 def gap_init(R, a, reg, regmet, solver):
-  if reg or reg ==1:
+  if reg or reg == 1:
     if regmet == 'tikh':
       Rreg = computeRtikh(R, a)
       _A_b = (Rreg, computeRHStikh)
@@ -179,3 +179,97 @@ def meshgrid(x1_x2_xn, y1_y2_yn=((), (), ())):
   x, y, pp = plot.meshgrid(x1_x2_xn, y1_y2_yn)
   pp = sg.Pointset(pp)
   return (x, y, pp)
+
+def computeallpsiL0(so, T): # test functions by rows
+  # L = np.empty((len(T), so.n))
+  allpsi0 = dpb.mapNtoD0(so, T.T) 
+  Lo = ly.layerpotS(s=so)
+  L = Lo.dot(allpsi0)
+  return L
+
+def computeallpsiL(so, ld, T, c): # test functions by rows
+  # L = np.empty((len(T), so.n))
+  allpsi = dpb.mapNtoD(so, ld, T.T, c)
+  Lo = ly.layerpotS(s=so)
+  Ld = ly.layerpotS(s=ld, t=so)
+  L = Lo.dot(allpsi[0:so.n]) + Ld.dot(allpsi[so.n::])
+  return L
+
+def computeLL0(ld, so, sb, c, testset=0):
+  if testset == 0:
+    S = dpb.gramschmidtBoundary(so)
+    T = S[:, 1::]    
+  if testset == 1 or testset == 3:
+    V1_nu = ly.layerpotSD(s=sb, t=so)
+    T = V1_nu
+  if testset == 2 or testset == 3:
+    V2_nu = ly.layerpotDD(s=sb, t=so)
+    T = V2_nu
+  if testset == 3:
+    T = np.concatenate((V1_nu.T, V2_nu.T)).T
+
+  L0 = computeallpsiL0(so, T.T) # test functions by rows
+  L = computeallpsiL(so, ld, T.T, c) # test functions by rows
+
+  LL0 = L - L0
+  return LL0
+
+def computeRHSNtoD(LL0, z0, so, theta=0, RHS=()):
+  if RHS != ():
+    return RHS
+  RHS = ly.phi_theta(z0, so.x, theta)
+  return RHS
+
+def computeRHSNtoDtikh(LL0, z0, so, theta=0, RHS=()):
+  if RHS == ():
+    RHS = computeRHSNtoD(LL0, z0, so, theta)
+  return LL0.T.dot(RHS)
+
+def NtoD_init(LL0, a, reg, regmet, solver):
+  if reg or reg == 1:
+    if regmet == 'tikh':
+      Rreg = computeRtikh(LL0, a)
+      _A_b = (Rreg, computeRHSNtoDtikh)
+  else:
+    _A_b = (R, computeRHSNtoD)
+
+  if solver == 's':
+    # _gap_s = (linalg.solve, _A_b[0], _A_b[1])
+    _gap_s = (_solve, _A_b[0], _A_b[1])
+    _gap = _gap_s
+  elif solver == 'lu':
+    (lu, piv) = linalg.lu_factor(_A_b[0])
+    # _gap_lu = (linalg.lu_solve, (lu, piv), _A_b[1])
+    _gap_lu = (_lu, (lu, piv), _A_b[1])
+    _gap = _gap_lu
+  elif solver == 'lstsq':
+    # _gap_lstsq = (linalg.lstsq, _A_b[0], _A_b[1])
+    _gap_lstsq = (_lstsq, _A_b[0], _A_b[1])
+    _gap = _gap_lstsq # to change
+  else:
+    print('Error: not valid solver')
+  return _gap
+
+def computeallsolsNtoD(_NtoD, pp, LL0, so, theta=0):
+  res = ()
+  nsolgap = ()
+  ninv = np.empty(len(pp.x), float)
+  # res = np.empty((len(pp.x), 1), float)
+  # nsolgap= np.empty((len(pp.x), 1), float)
+  # nn = np.empty(len(pp.x), float)
+  # (lu, piv) = linalg.lu_factor(computeRtikh(R, 1e-14))
+  for k in range(len(pp.x)):
+    z0 = pp.x[k]
+    RHS = ly.phi_theta(z0, so.x, theta)
+    RHSreg = LL0.T.dot(RHS)
+    _NtoD_rhs =  _NtoD[2](LL0, z0, so, theta, RHS=RHS)
+    zeta = _NtoD[0](_NtoD[1], _NtoD_rhs)
+    # zeta = _gap[0](_gap[1], _gap[2](R, U, U_nu, z, so, theta))[0]
+    # zeta = linalg.lu_solve((lu, piv), RHSreg)
+    # res[k]= norm(R.dot(zeta) - RHS)
+    # nsolgap[k]= norm(zeta)
+    time.sleep(0.001)  
+    ninv[k] = norm(RHS) / norm(zeta)
+    # print('residual= ',linalg.norm(Rreg.dot(zeta)-RHSreg))
+    # print('residual2= ',linalg.norm(R.dot(zeta)-RHS))
+  return (ninv, res, nsolgap)

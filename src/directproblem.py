@@ -11,8 +11,8 @@ from __types__ import *
 import layerpot as ly
 import segment as sg
 import plot
-
-verbose=1
+import time
+verbose=0
 
 # (K' + 0.5 * c(h) * I) psi = -phi_nu
 def gramschmidt(s0, E=()):
@@ -26,6 +26,20 @@ def gramschmidt(s0, E=()):
     for j in range(k):
       S[k] = S[k] - E[k].dot(S[j]) * S[j]
     S[k] = S[k] / numpy.linalg.norm(S[k])
+  return S.T
+def gramschmidtBoundary(so, s0=(), E=()): # scalar product L2 space
+  if s0 == ():
+    s0 = np.ones(so.n) # constant function
+  n = len(s0)
+  if E == ():
+    E = np.diagflat(np.ones((n, 1))) # identity
+  S = np.empty((n, n))
+  S[0] = s0 / np.sqrt(sum(s0**2 * so.w))
+  for k in range(1, n):
+    S[k] = E[k]
+    for j in range(k):
+      S[k] = S[k] - sum(E[k] * S[j] * so.w) * S[j]
+    S[k] = S[k] / np.sqrt(sum(S[k]**2 * so.w))
   return S.T
 
 def directA(l, c): # to delete
@@ -149,18 +163,33 @@ def mapNtoD0(l, g):
     print('mapNtoD determninant= ', numpy.linalg.det(np.array(Kpa, float)))
   n = len(Kpa)
   psi = np.ones(n)
-  S = gramschmidt(psi)
+  S = gramschmidtBoundary(l, psi)
   Kps = S.T.dot(Kpa.dot(S))
   Kps2 = Kps[1::, 1::]
+
   gs = S.T.dot(g)
   gs2 = gs[1::]
 
+  # phi2 = linalg.solve(Kps2, gs2)
+  (lu, piv) = linalg.lu_factor(Kps2)
+  if gs2.ndim == 1:
+    phi2 = linalg.lu_solve((lu, piv), gs2)
+    phi = np.concatenate(([0], phi2 ))
+    if verbose:
+      print('residual = ', numpy.linalg.norm(Kps2.dot(phi2) - gs2))
+  elif gs2.ndim == 2:
+    gs2t = gs2.T
+    phi2 = np.empty((len(gs2t), n - 1 ))
+    for k in range(len(gs2t)):
+      phi2[k] = linalg.lu_solve((lu, piv), gs2t[k])
+      time.sleep(0.001)
+    phi2 = phi2.T
+    phi = np.concatenate((np.zeros((1, len(gs2t))), phi2))
+  else:
+    print('Error dimensions for gs2 in mapNtoD0')
   # phi2 = scipy.sparse.linalg.cg(Kps2, gs2)[0]
-  phi2 = linalg.solve(Kps2, gs2)
-  phi = np.concatenate(([0], phi2 ))
 
   # phi = linalg.solve(Kps, gs) # check error
-  print('residual = ', numpy.linalg.norm(Kps2.dot(phi2) - gs2))
   return S.dot(phi)
 
 def mapNtoD(lo, ld, g, c):
@@ -174,7 +203,7 @@ def mapNtoD(lo, ld, g, c):
   Ko2d = ly.layerpotSD(s=lo, t=ld)
 
   psi = np.ones(no)
-  S = gramschmidt(psi)
+  S = gramschmidtBoundary(lo, psi)
   Kpo = Kpo.dot(S)
   Ko2d = Ko2d.dot(S)
   
@@ -182,20 +211,37 @@ def mapNtoD(lo, ld, g, c):
   row2 = np.concatenate((Ko2d.T, Kpd.T)).T
   Ks = np.concatenate((S.T.dot(row1), row2))
   Ks2 = Ks[1::,1::]
-  gs = np.concatenate((S.T.dot(g), np.zeros(nd)))
-  gs2 = gs[1::]
-  if verbose:
-    print('mapNtoD condition number= ', numpy.linalg.cond(np.array(Ks, float)))
-    print('mapNtoD determninant= ', numpy.linalg.det(np.array(Ks, float)))
-  phi2 = linalg.solve(Ks2, gs2)
-  # phi = scipy.sparse.linalg.cg(Kpa, g)[0]
-  print('residual = ', numpy.linalg.norm(Ks2.dot(phi2) - gs2))
-  print('residual2 = ', numpy.linalg.norm(row2[:,1::].dot(phi2) - gs2[-nd::]))
 
-  phi = np.concatenate(([0], phi2 ))
-  phi = np.concatenate((S.dot(phi[0:no]), phi[no::]))
+  (lu, piv) = linalg.lu_factor(Ks2)
+  if g.ndim == 1:
+    gs = np.concatenate((S.T.dot(g), np.zeros(nd)))
+    gs2 = gs[1::]
+    if verbose:
+      print('mapNtoD condition number= ', numpy.linalg.cond(np.array(Ks, float)))
+      print('mapNtoD determninant= ', numpy.linalg.det(np.array(Ks, float)))
+    # phi2 = linalg.solve(Ks2, gs2)
+    phi2 = linalg.lu_solve((lu, piv), gs2)
+    # phi = scipy.sparse.linalg.cg(Kpa, g)[0]
+    if verbose:
+      print('residual = ', numpy.linalg.norm(Ks2.dot(phi2) - gs2))
+      print('residual2 = ', numpy.linalg.norm(row2[:,1::].dot(phi2) - gs2[-nd::]))
+    phi = np.concatenate(([0], phi2 ))
+  elif g.ndim == 2:
+    nt = g.shape[1]
+    gs = np.concatenate(( S.T.dot(g), np.zeros((nd, nt)) ))
+    gs2 = gs[1::]
+    gs2t = gs2.T
+    phi2 = np.empty((nt, no + nd - 1))
+    for k in range(nt):
+      phi2[k] = linalg.lu_solve((lu, piv), gs2t[k])
+      time.sleep(0.001)
+    phi2 = phi2.T
+    phi = np.concatenate((np.zeros((1, nt)), phi2))
+  
+  else:
+    print('Error dimensions for gs2 in mapNtoD0')
   # S = ly.layerpotS(s=l)
   # trace = S.dot(phi)
-  return phi
+  return np.concatenate((S.dot(phi[0:no]), phi[no::]))
 
     

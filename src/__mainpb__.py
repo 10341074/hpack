@@ -7,7 +7,7 @@ tc = time.clock()
 #########
 
 h = 200.0
-nsrc = 30
+nsrc = 20
 
 R = ()
 a = 1e-12
@@ -98,7 +98,19 @@ psi = dpb.mapNtoD(so, ld, g, c)
 lo.dns = psi[0:lo.n]
 ld.dns = psi[lo.n:]
 
-dpb.plotdpb(lo, (), (-3, 3, 100), t='im', l2=ld)
+dpb.plotdpb(lo, (), (-8, 8, 100), t='im', l2=ld)
+
+LL0 = computeLL0(ld, so, sb, c, testset=0)
+_NtoD = NtoD_init(LL0, a, reg, regmet, solver)
+
+x, y, pp = meshgrid((-2, 2 , 40))
+
+(ninv, res, nsolgap) = computeallsolsNtoD(_NtoD, pp, LL0, so, theta)
+
+plot.plot(x, y, ninv,'im')
+ld.plot(p=True)
+plt.show(block=False)
+
 
 end = input('Press enter')
 

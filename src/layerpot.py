@@ -6,6 +6,7 @@ import quadr
 
 pi = np.pi
 log = np.log
+cos = np.cos
 sin = np.sin
 real = np.real
 symmflagval = -999.; # all diag vals of this signifies symmetric - a hack
@@ -25,11 +26,15 @@ def phi_p(z0=0, z=[]):
   return - 1. / 2 / pi * d/abs(d)**2
 def phi_n(z0=0, z=[], n=[]):
   return np.real(np.conj(n) * phi_p(z0, z))
+def phi_theta(z0=0, z=[], theta=0):
+  n = (np.cos(theta) + 1j * np.sin(theta) ) * np.ones((len(z)))
+  return scalar(n, phi_p(z0, z))
 
 def phi_x(z0=0, z=[]):
   return np.real(phi_p(z0, z))
 def phi_y(z0=0, z=[]):
   return np.imag(phi_p(z0, z))
+
 def phi_xx(z0=0, z=[]):
   return 1. / 2 / pi * 2 / abs(z-z0)**3 * np.real(z-z0) * np.real(z-z0) / abs(z-z0) - 1. / 2 / pi / abs(z-z0)**2
 def phi_yy(z0=0, z=[]):
