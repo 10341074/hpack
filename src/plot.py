@@ -32,7 +32,7 @@ def plot(x, y, vv, t='im', fig=[], show=1):
   fig = plt.figure()
   v = vv.reshape((len(y), len(x)))
   if t == 'cf':
-    fig = plt.contourf(x, y, v, 40)
+    fig = plt.contourf(x, y, v, 20)
     plt.colorbar()
   elif t == 'im':
     fig = plt.imshow(np.array(v[::-1], 'float64'), extent = (x[0], x[-1], y[0], y[-1]))
@@ -48,3 +48,9 @@ def plot(x, y, vv, t='im', fig=[], show=1):
   if show:
     plt.show(block=False)
   return fig
+
+def contour(x, y, vv, val=1e-3):
+  fig = plt.figure()
+  v = vv.reshape((len(y), len(x)))
+  fig = plt.contour(x, y, v, [val])
+  return fig.collections[0].get_paths()[0].vertices

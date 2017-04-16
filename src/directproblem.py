@@ -12,35 +12,11 @@ import layerpot as ly
 import segment as sg
 import plot
 import time
+
+import linfunc as linf
 verbose=0
 
 # (K' + 0.5 * c(h) * I) psi = -phi_nu
-def gramschmidt(s0, E=()):
-  n = len(s0)
-  if E == ():
-    E = np.diagflat(np.ones((n, 1)))
-  S = np.empty((n, n))
-  S[0] = s0 / numpy.linalg.norm(s0)
-  for k in range(1, n):
-    S[k] = E[k]
-    for j in range(k):
-      S[k] = S[k] - E[k].dot(S[j]) * S[j]
-    S[k] = S[k] / numpy.linalg.norm(S[k])
-  return S.T
-def gramschmidtBoundary(so, s0=(), E=()): # scalar product L2 space
-  if s0 == ():
-    s0 = np.ones(so.n) # constant function
-  n = len(s0)
-  if E == ():
-    E = np.diagflat(np.ones((n, 1))) # identity
-  S = np.empty((n, n))
-  S[0] = s0 / np.sqrt(sum(s0**2 * so.w))
-  for k in range(1, n):
-    S[k] = E[k]
-    for j in range(k):
-      S[k] = S[k] - sum(E[k] * S[j] * so.w) * S[j]
-    S[k] = S[k] / np.sqrt(sum(S[k]**2 * so.w))
-  return S.T
 
 def directA(l, c): # to delete
   Kp = l.exp(0, l.b[0], [], [])
@@ -151,48 +127,49 @@ if __name__ == "__main__":
   # s.plot(p=True)
   plt.show(block=True)
   
-def mapNtoD0(l, g):
-  # Kp = l.eval_self(exp=ly.layerpotSD)
+def mapNtoD0(l, g, s0=()):
+  n = l.n
   Kp = ly.layerpotSD(s=l)
-  # print('check ', max([max(abs(r)) for r in Kp - Kp2]))
-  
-  Kpa = Kp
-  Kpa[np.diag_indices(l.n)] = Kpa[np.diag_indices(l.n)] + 0.5
+  Kp[np.diag_indices(n)] = Kp[np.diag_indices(n)] + 0.5
   if verbose:
-    print('mapNtoD condition number= ', numpy.linalg.cond(np.array(Kpa, float)))
-    print('mapNtoD determninant= ', numpy.linalg.det(np.array(Kpa, float)))
-  n = len(Kpa)
-  psi = np.ones(n)
-  S = gramschmidtBoundary(l, psi)
-  Kps = S.T.dot(Kpa.dot(S))
-  Kps2 = Kps[1::, 1::]
+    print('mapNtoD condition number= ', numpy.linalg.cond(np.array(Kp, float)))
+    print('mapNtoD determninant= ', numpy.linalg.det(np.array(Kp, float)))
+  if s0 == ():
+    s0 = np.ones(n)
+  S = linf.gramschmidt(s0 = s0)
+  # Kps = S.T.dot(Kp.dot(S))
+  Kps = Kp.dot(S)
+  Kps1 = Kps[1::, 1::]
 
-  gs = S.T.dot(g)
-  gs2 = gs[1::]
+  # gs = S.T.dot(g)
+  gs = g
+  gs1 = gs[1::]
 
   # phi2 = linalg.solve(Kps2, gs2)
-  (lu, piv) = linalg.lu_factor(Kps2)
-  if gs2.ndim == 1:
-    phi2 = linalg.lu_solve((lu, piv), gs2)
-    phi = np.concatenate(([0], phi2 ))
+  (lu, piv) = linalg.lu_factor(Kps1)
+  if gs1.ndim == 1:
+    phi1 = linalg.lu_solve((lu, piv), gs1)
+    phi = np.concatenate(( [0], phi1 ))
     if verbose:
-      print('residual = ', numpy.linalg.norm(Kps2.dot(phi2) - gs2))
-  elif gs2.ndim == 2:
-    gs2t = gs2.T
-    phi2 = np.empty((len(gs2t), n - 1 ))
-    for k in range(len(gs2t)):
-      phi2[k] = linalg.lu_solve((lu, piv), gs2t[k])
-      time.sleep(0.001)
-    phi2 = phi2.T
-    phi = np.concatenate((np.zeros((1, len(gs2t))), phi2))
+      print('residual = ', numpy.linalg.norm(Kps1.dot(phi1) - gs1))
+  elif gs1.ndim == 2:
+    nt = g.shape[1]
+    # gs2t = gs2.T
+    # phi2 = np.empty((len(gs2t), n - 1 ))
+    # for k in range(len(gs2t)):
+    #   phi2[k] = linalg.lu_solve((lu, piv), gs2t[k])
+    #   time.sleep(0.001)
+    # phi2 = phi2.T
+    phi1 = linalg.lu_solve((lu, piv), gs1)
+    phi = np.concatenate(( np.zeros((1, nt)), phi1))
   else:
-    print('Error dimensions for gs2 in mapNtoD0')
+    print('Error dimensions for gs in mapNtoD0')
   # phi2 = scipy.sparse.linalg.cg(Kps2, gs2)[0]
 
   # phi = linalg.solve(Kps, gs) # check error
   return S.dot(phi)
 
-def mapNtoD(lo, ld, g, c):
+def mapNtoD(lo, ld, g, c, s0=()):
   no = lo.n
   nd = ld.n
   Kpd = ly.layerpotSD(s=ld)
@@ -202,46 +179,46 @@ def mapNtoD(lo, ld, g, c):
   Kd2o = ly.layerpotSD(s=ld, t=lo)
   Ko2d = ly.layerpotSD(s=lo, t=ld)
 
-  psi = np.ones(no)
-  S = gramschmidtBoundary(lo, psi)
+  if s0 == ():
+    s0 = np.ones(no)
+  S = linf.gramschmidt(s0 = s0)
   Kpo = Kpo.dot(S)
   Ko2d = Ko2d.dot(S)
   
   row1 = np.concatenate((Kpo.T, Kd2o.T)).T
   row2 = np.concatenate((Ko2d.T, Kpd.T)).T
-  Ks = np.concatenate((S.T.dot(row1), row2))
-  Ks2 = Ks[1::,1::]
+  # Ks = np.concatenate((S.T.dot(row1), row2))
+  Ks = np.concatenate(( row1, row2 ))
+  Ks1 = Ks[1::, 1::]
 
-  (lu, piv) = linalg.lu_factor(Ks2)
+  (lu, piv) = linalg.lu_factor(Ks1)
   if g.ndim == 1:
-    gs = np.concatenate((S.T.dot(g), np.zeros(nd)))
-    gs2 = gs[1::]
+    # gs = np.concatenate((S.T.dot(g), np.zeros(nd)))
+    gs = np.concatenate(( g, np.zeros(nd) ))
+    gs1 = gs[1::]
     if verbose:
       print('mapNtoD condition number= ', numpy.linalg.cond(np.array(Ks, float)))
       print('mapNtoD determninant= ', numpy.linalg.det(np.array(Ks, float)))
-    # phi2 = linalg.solve(Ks2, gs2)
-    phi2 = linalg.lu_solve((lu, piv), gs2)
-    # phi = scipy.sparse.linalg.cg(Kpa, g)[0]
+    phi1 = linalg.lu_solve((lu, piv), gs1)
     if verbose:
-      print('residual = ', numpy.linalg.norm(Ks2.dot(phi2) - gs2))
-      print('residual2 = ', numpy.linalg.norm(row2[:,1::].dot(phi2) - gs2[-nd::]))
-    phi = np.concatenate(([0], phi2 ))
+      print('residual = ', numpy.linalg.norm(Ks1.dot(phi1) - gs1))
+      print('residual2 = ', numpy.linalg.norm(row2[:, 1::].dot(phi1) - gs1[-nd::]))
+    phi = np.concatenate(( [0], phi1 ))
   elif g.ndim == 2:
     nt = g.shape[1]
-    gs = np.concatenate(( S.T.dot(g), np.zeros((nd, nt)) ))
-    gs2 = gs[1::]
-    gs2t = gs2.T
-    phi2 = np.empty((nt, no + nd - 1))
-    for k in range(nt):
-      phi2[k] = linalg.lu_solve((lu, piv), gs2t[k])
-      time.sleep(0.001)
-    phi2 = phi2.T
-    phi = np.concatenate((np.zeros((1, nt)), phi2))
-  
+    # gs = np.concatenate(( S.T.dot(g), np.zeros((nd, nt)) ))
+    gs = np.concatenate(( g, np.zeros((nd, nt)) ))
+    gs1 = gs[1::]
+    # gs2t = gs2.T
+    # phi2 = np.empty((nt, no + nd - 1))
+    # for k in range(nt):
+    #   phi2[k] = linalg.lu_solve((lu, piv), gs2t[k])
+    #   time.sleep(0.001)
+    # phi2 = phi2.T
+    phi1 = linalg.lu_solve((lu, piv), gs1)
+    phi = np.concatenate((np.zeros((1, nt)), phi1))  
   else:
-    print('Error dimensions for gs2 in mapNtoD0')
-  # S = ly.layerpotS(s=l)
-  # trace = S.dot(phi)
+    print('Error dimensions for gs1 in mapNtoD')
   return np.concatenate((S.dot(phi[0:no]), phi[no::]))
 
     

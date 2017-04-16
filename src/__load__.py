@@ -16,6 +16,10 @@ from __types__ import *
 
 import layerpot as ly
 import segment as sg
+import shapes as sh
 import plot
 import directproblem as dpb
 import inverseproblem as ipb
+
+import linfunc as linf
+import lintype as lint

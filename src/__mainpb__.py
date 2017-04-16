@@ -10,10 +10,10 @@ h = 200.0
 nsrc = 20
 
 R = ()
-a = 1e-16
+a = 1e-14
 reg = 1
 regmet = 'tikh'
-solver = 'lstsq'
+solver = 'lu'
 
 theta = 0
 #########
@@ -57,8 +57,9 @@ def method_gap():
 
   (ninv, res, nsolgap) = computeallsolsgap(_gap, pp, R, U, U_nu, so, theta)
 
-
-  plot.plot(x, y, ninv,'im')
+  ninv01 = ninv / max(ninv)
+ 
+  plot.plot(x, y, ninv, 'im')
   ld.plot(p=True)
   plt.show(block=False)
 
@@ -70,13 +71,14 @@ def method_gap():
   # plt.savefig('fig.ps')
   # plt.savefig('fig.eps')
   plt.savefig('fig_ninv.svg')
-  return
+  return ninv
 
 def method_NtoD():
   c = 1.0 * (h + 1) / (h - 1)
   print(c)
   ld, so, sb = x3domain()
   nsd, nso, nsb = ld.n, so.n, sb.n
+  print('theta = ', theta)
 
   LL0 = computeLL0(ld, so, sb, c, testset=0)
   _NtoD = NtoD_init(LL0, a, reg, regmet, solver)
@@ -84,19 +86,23 @@ def method_NtoD():
   x, y, pp = meshgrid((-2, 2 , 40))
   
   (ninv, res, nsolgap) = computeallsolsNtoD(_NtoD, pp, LL0, so, theta)
-  
-  plot.plot(x, y, ninv,'im')
+  ninv01 = ninv / max(ninv)
+
+  plot.plot(x, y, ninv, 'cf')
   ld.plot(p=True)
   plt.show(block=False)
-  return
+  plt.savefig('fig_ninv.svg')
+  return ninv
 
 c = 1.0 * (h + 1) / (h - 1)
 print(c)
 ld, so, sb = x3domain()
 nsd, nso, nsb = ld.n, so.n, sb.n
 
-method_gap()
-method_NtoD()
+# method_gap()
+thetav = np.pi * np.array([0], float)
+for theta in np.array(thetav):
+  ninv = method_NtoD()
 tt = time.time() - tt
 tc = time.clock() - tc
 
@@ -117,5 +123,6 @@ def test_NtoD():
   psi = dpb.mapNtoD(so, ld, g, c)
   lo.dns = psi[0:lo.n]
   ld.dns = psi[lo.n:]
+
   dpb.plotdpb(lo, (), (-8, 8, 100), t='im', l2=ld)
   return

@@ -16,6 +16,9 @@ import segment as sg
 import plot
 import directproblem as dpb
 
+import linfunc as linf
+import lintype as lint
+
 verbose = 1
 
 def computeRtikh(R, a):
@@ -180,25 +183,31 @@ def meshgrid(x1_x2_xn, y1_y2_yn=((), (), ())):
   pp = sg.Pointset(pp)
   return (x, y, pp)
 
-def computeallpsiL0(so, T): # test functions by rows
+def computeallpsiL0(so, T, s0):
   # L = np.empty((len(T), so.n))
-  allpsi0 = dpb.mapNtoD0(so, T.T) 
+  allpsi0 = dpb.mapNtoD0(so, T, s0) 
   Lo = ly.layerpotS(s=so)
   L = Lo.dot(allpsi0)
-  return L
+  means = sum(np.diagflat(so.w).dot(L)) / sum(so.w)
+  L = L - np.array([means for k in range(so.n)])
+  return T.T.dot(L)
 
-def computeallpsiL(so, ld, T, c): # test functions by rows
+def computeallpsiL(so, ld, T, c, s0):
   # L = np.empty((len(T), so.n))
-  allpsi = dpb.mapNtoD(so, ld, T.T, c)
+  allpsi = dpb.mapNtoD(so, ld, T, c, s0)
   Lo = ly.layerpotS(s=so)
   Ld = ly.layerpotS(s=ld, t=so)
   L = Lo.dot(allpsi[0:so.n]) + Ld.dot(allpsi[so.n::])
-  return L
+  means = sum(np.diagflat(so.w).dot(L)) / sum(so.w)
+  L = L - np.array([means for k in range(so.n)])
+  return T.T.dot(L)
 
 def computeLL0(ld, so, sb, c, testset=0):
+  Kp = ly.layerpotSD(s=so)
+  (nu, s0) = linf.eigmaxpowerw(A=Kp, s=so)
   if testset == 0:
-    S = dpb.gramschmidtBoundary(so)
-    T = S[:, 1::]    
+    S = linf.gramschmidtw(so, s0=s0)
+    T = S[:, 1::]
   if testset == 1 or testset == 3:
     V1_nu = ly.layerpotSD(s=sb, t=so)
     T = V1_nu
@@ -208,16 +217,18 @@ def computeLL0(ld, so, sb, c, testset=0):
   if testset == 3:
     T = np.concatenate((V1_nu.T, V2_nu.T)).T
 
-  L0 = computeallpsiL0(so, T.T) # test functions by rows
-  L = computeallpsiL(so, ld, T.T, c) # test functions by rows
+  L0 = computeallpsiL0(so, T, s0)
+  L = computeallpsiL(so, ld, T, c, s0)
 
   LL0 = L - L0
+  # LL0 = S[:, 1::].T.dot(LL0)
   return LL0
 
 def computeRHSNtoD(LL0, z0, so, theta=0, RHS=()):
   if RHS != ():
     return RHS
-  RHS = ly.phi_theta(z0, so.x, theta)
+  S = linf.gramschmidtw(so)
+  RHS = S[:, 1::].T.dot(ly.phi_theta(z0, so.x, theta))
   return RHS
 
 def computeRHSNtoDtikh(LL0, z0, so, theta=0, RHS=()):
@@ -250,17 +261,56 @@ def NtoD_init(LL0, a, reg, regmet, solver):
     print('Error: not valid solver')
   return _gap
 
+def solver_init(A, alpha, reg, regmet, solver, RHS_args):
+  s = lint.Solver(A=A, RHS_f=(), RHS_args=RHS_args)
+  if reg or reg == 1:
+    if regmet == 'tikh':
+      s.A = computeAtikh(A, alpha)
+      s.RHS_f = computeRHStikh
+    else:
+      print('regularization without specified method')
+  else:
+    s.A = A
+    s.RHS_f = computeRHS
+
+  if solver == 's':
+    s.solver_a = s.A
+    s.solver_f = _solve
+  elif solver == 'lu':
+    (lu, piv) = linalg.lu_factor(s.A)
+    s.solver_a = (lu, piv)
+    s.solver = _lu
+  elif solver == 'lstsq':
+    s.solver_a = s.A
+    s.solver_f = _lstsq # to change
+  else:
+    print('Error: not valid solver')
+  return s
+
+def rhs(z0, so, theta=0):
+  # S = linf.gramschmidtw(so)
+  # r1 = S[:, 1::].T.dot(ly.phi_theta(z0, so.x, theta))
+  r1  = ly.phi_theta(z0, so.x, theta)
+  xx = ly.phi_xx(z0, so.x)
+  xy = ly.phi_xy(z0, so.x)
+  yy = ly.phi_yy(z0, so.x)
+  g = so.nx.real * xx * np.cos(theta) + so.nx.real * xy * np.sin(theta) + so.nx.imag * xy * np.cos(theta) + so.nx.imag * yy * np.sin(theta)
+  return r1 + g
+
 def computeallsolsNtoD(_NtoD, pp, LL0, so, theta=0):
   res = ()
   nsolgap = ()
   ninv = np.empty(len(pp.x), float)
+  S = linf.gramschmidtw(so)
   # res = np.empty((len(pp.x), 1), float)
   # nsolgap= np.empty((len(pp.x), 1), float)
   # nn = np.empty(len(pp.x), float)
   # (lu, piv) = linalg.lu_factor(computeRtikh(R, 1e-14))
   for k in range(len(pp.x)):
     z0 = pp.x[k]
-    RHS = ly.phi_theta(z0, so.x, theta)
+    # RHS = S[:, 1::].T.dot(ly.phi_theta(z0, so.x, theta))
+    RHS = S[:, 1::].T.dot(rhs(z0, so, theta))
+    # RHS = ly.phi_theta(z0, so.x, theta)
     #RHSreg = LL0.T.dot(RHS)
     _NtoD_rhs =  _NtoD[2](LL0, z0, so, theta, RHS=RHS)
     zeta = _NtoD[0](_NtoD[1], _NtoD_rhs)
@@ -273,3 +323,30 @@ def computeallsolsNtoD(_NtoD, pp, LL0, so, theta=0):
     # print('residual= ',linalg.norm(Rreg.dot(zeta)-RHSreg))
     # print('residual2= ',linalg.norm(R.dot(zeta)-RHS))
   return (ninv, res, nsolgap)
+
+# def iallsols(isolver, pointstest, LL0, so, theta=0):
+#   res = ()
+#   nsolgap = ()
+#   ninv = np.empty(len(pointstest.x), float)
+#   S = linf.gramschmidtw(so)
+#   # res = np.empty((len(pp.x), 1), float)
+#   # nsolgap= np.empty((len(pp.x), 1), float)
+#   # nn = np.empty(len(pp.x), float)
+#   # (lu, piv) = linalg.lu_factor(computeRtikh(R, 1e-14))
+#   for k in range(len(pp.x)):
+#     z0 = pointstest.x[k]
+#     RHS = S[:, 1::].T.dot(ly.phi_theta(z0, so.x, theta))
+#     # RHS = ly.phi_theta(z0, so.x, theta)
+#     #RHSreg = LL0.T.dot(RHS)
+#     _NtoD_rhs =  _NtoD[2](LL0, z0, so, theta, RHS=RHS)
+#     zeta = _NtoD[0](_NtoD[1], _NtoD_rhs)
+#     # zeta = _gap[0](_gap[1], _gap[2](R, U, U_nu, z, so, theta))[0]
+#     # zeta = linalg.lu_solve((lu, piv), RHSreg)
+#     # res[k]= norm(R.dot(zeta) - RHS)
+#     # nsolgap[k]= norm(zeta)
+#     time.sleep(0.001)  
+#     ninv[k] = norm(RHS) / norm(zeta)
+#     # print('residual= ',linalg.norm(Rreg.dot(zeta)-RHSreg))
+#     # print('residual2= ',linalg.norm(R.dot(zeta)-RHS))
+#   return (ninv, res, nsolgap)
+
