@@ -287,7 +287,7 @@ def solver_init(A, alpha, reg, regmet, solver, RHS_args):
     print('Error: not valid solver')
   return s
 
-def rhs(z0, so, theta=0):
+def rhs(z0, so, theta=0, s0=()):
   # S = linf.gramschmidtw(so)
   # r1 = S[:, 1::].T.dot(ly.phi_theta(z0, so.x, theta))
   r1  = ly.phi_theta(z0, so.x, theta)
@@ -295,13 +295,17 @@ def rhs(z0, so, theta=0):
   xy = ly.phi_xy(z0, so.x)
   yy = ly.phi_yy(z0, so.x)
   g = so.nx.real * xx * np.cos(theta) + so.nx.real * xy * np.sin(theta) + so.nx.imag * xy * np.cos(theta) + so.nx.imag * yy * np.sin(theta)
-  return r1 + g
+  psi = dpb.mapNtoD0(so, -g, s0)
+  f = r1 + ly.layerpotS(s=so).dot(g)
+  f = f - sum(f*so.w) / sum(so.w) * np.ones(so.n)
+  return f
 
 def computeallsolsNtoD(_NtoD, pp, LL0, so, theta=0):
   res = ()
   nsolgap = ()
   ninv = np.empty(len(pp.x), float)
   S = linf.gramschmidtw(so)
+  s0 = linf.eigmaxpowerw(ly.layerpotS(s=so), so)[1]
   # res = np.empty((len(pp.x), 1), float)
   # nsolgap= np.empty((len(pp.x), 1), float)
   # nn = np.empty(len(pp.x), float)
@@ -309,7 +313,7 @@ def computeallsolsNtoD(_NtoD, pp, LL0, so, theta=0):
   for k in range(len(pp.x)):
     z0 = pp.x[k]
     # RHS = S[:, 1::].T.dot(ly.phi_theta(z0, so.x, theta))
-    RHS = S[:, 1::].T.dot(rhs(z0, so, theta))
+    RHS = S[:, 1::].T.dot(rhs(z0, so, theta, s0))
     # RHS = ly.phi_theta(z0, so.x, theta)
     #RHSreg = LL0.T.dot(RHS)
     _NtoD_rhs =  _NtoD[2](LL0, z0, so, theta, RHS=RHS)
@@ -318,7 +322,7 @@ def computeallsolsNtoD(_NtoD, pp, LL0, so, theta=0):
     # zeta = linalg.lu_solve((lu, piv), RHSreg)
     # res[k]= norm(R.dot(zeta) - RHS)
     # nsolgap[k]= norm(zeta)
-    time.sleep(0.001)  
+    time.sleep(0.01)  
     ninv[k] = norm(RHS) / norm(zeta)
     # print('residual= ',linalg.norm(Rreg.dot(zeta)-RHSreg))
     # print('residual2= ',linalg.norm(R.dot(zeta)-RHS))
