@@ -136,13 +136,13 @@ def mapNtoD0(l, g, s0=()):
     print('mapNtoD determninant= ', numpy.linalg.det(np.array(Kp, float)))
   if s0 == ():
     s0 = np.ones(n)
-  S = linf.gramschmidt(s0 = s0)
+  S = l.S
   # Kps = S.T.dot(Kp.dot(S))
-  Kps = Kp.dot(S)
+  Kps = l.SL.T.dot(Kp.dot(S))
   Kps1 = Kps[1::, 1::]
 
   # gs = S.T.dot(g)
-  gs = g
+  gs = l.SL.T.dot(g)
   gs1 = gs[1::]
 
   # phi2 = linalg.solve(Kps2, gs2)

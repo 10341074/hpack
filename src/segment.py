@@ -12,6 +12,7 @@ import gradedmesh as graded
 # import shapes as sh
 import layerpot as ly
 
+import linfunc as linf
 
 #from shapes import * # to be subs with import shapes
 # def cZ(t, c = 0, a = 1, b = 1):
@@ -91,6 +92,14 @@ class Segment:
       self.w = np.array([sp / (n-1) for sp in self.speed], float)
       self.w[0] = self.w[0] * 0.5
       self.w[-1] = self.w[-1] * 0.5
+    K = ly.layerpotSD(s=self)
+    nu, s0 = linf.eigmaxpower(K)
+    self.s0 = s0
+    self.S = linf.gramschmidt(s0=s0)
+    self.Sw = linf.gramschmidtw(s=self, s0=s0)
+    self.SL = linf.gramschmidt(s0=self.w)
+    self.B = linf.gramschmidtw(s=self, s0=np.ones(self.n))
+    
   def plot(self, p=True):
     xx = [x.real for x in self.x]
     yy = [x.imag for x in self.x]

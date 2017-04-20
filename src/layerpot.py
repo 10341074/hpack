@@ -42,6 +42,11 @@ def phi_yy(z0=0, z=[]):
 def phi_xy(z0=0, z=[]):
   return 1. / 2 / pi * 2 / abs(z-z0)**3 * np.real(z-z0) * np.imag(z-z0) / abs(z-z0)
 
+def phi_hess(z0=0, z=[]):
+  return np.array(
+    [[ phi_xx(z0, z), phi_xy(z0, z)],
+     [ phi_xy(z0, z), phi_yy(z0, z)]])
+
 def phi_xxx(z0=0, z=[]):
   return 1. / 2 / pi * (-8) / abs(z-z0)**5 * np.real(z-z0) / abs(z-z0) * np.real(z-z0)**2 + 1. / 2 / pi * 4 / abs(z-z0)**4 * np.real(z-z0) + 1. / 2 / pi * 2/ abs(z-z0)**3 * np.real(z-z0) / abs(z-z0)
 def phi_xxy(z0=0, z=[]):
