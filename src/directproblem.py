@@ -222,3 +222,54 @@ def mapNtoD(lo, ld, g, c, s0=()):
   return np.concatenate((S.dot(phi[0:no]), phi[no::]))
 
     
+def mapNtoDdiff(lo, ld, g, c, s0=()):
+  no = lo.n
+  nd = ld.n
+  Kpd = ly.layerpotSD(s=ld)
+  Kpo = ly.layerpotSD(s=lo)
+  Kpd[np.diag_indices(nd)] = Kpd[np.diag_indices(nd)] + 0.5 * c
+  Kpo[np.diag_indices(no)] = Kpo[np.diag_indices(no)] + 0.5
+  Kd2o = ly.layerpotSD(s=ld, t=lo)
+  Ko2d = ly.layerpotSD(s=lo, t=ld)
+
+  if s0 == ():
+    s0 = np.ones(no)
+  S = linf.gramschmidt(s0 = s0)
+  Kpo = Kpo.dot(S)
+  Ko2d = Ko2d.dot(S)
+  
+  row1 = np.concatenate((Kpo.T, Kd2o.T)).T
+  row2 = np.concatenate((Ko2d.T, Kpd.T)).T
+  # Ks = np.concatenate((S.T.dot(row1), row2))
+  Ks = np.concatenate(( row1, row2 ))
+  Ks1 = Ks[1::, 1::]
+
+  (lu, piv) = linalg.lu_factor(Ks1)
+  if g.ndim == 1:
+    # gs = np.concatenate((S.T.dot(g), np.zeros(nd)))
+    gs = np.concatenate(( np.zeros(no), - g ))
+    gs1 = gs[1::]
+    if verbose:
+      print('mapNtoD condition number= ', numpy.linalg.cond(np.array(Ks, float)))
+      print('mapNtoD determninant= ', numpy.linalg.det(np.array(Ks, float)))
+    phi1 = linalg.lu_solve((lu, piv), gs1)
+    if verbose:
+      print('residual = ', numpy.linalg.norm(Ks1.dot(phi1) - gs1))
+      print('residual2 = ', numpy.linalg.norm(row2[:, 1::].dot(phi1) - gs1[-nd::]))
+    phi = np.concatenate(( [0], phi1 ))
+  elif g.ndim == 2:
+    nt = g.shape[1]
+    # gs = np.concatenate(( S.T.dot(g), np.zeros((nd, nt)) ))
+    gs = np.concatenate(( np.zeros((no, nt)), - g ))
+    gs1 = gs[1::]
+    # gs2t = gs2.T
+    # phi2 = np.empty((nt, no + nd - 1))
+    # for k in range(nt):
+    #   phi2[k] = linalg.lu_solve((lu, piv), gs2t[k])
+    #   time.sleep(0.001)
+    # phi2 = phi2.T
+    phi1 = linalg.lu_solve((lu, piv), gs1)
+    phi = np.concatenate((np.zeros((1, nt)), phi1))  
+  else:
+    print('Error dimensions for gs1 in mapNtoD')
+  return np.concatenate((S.dot(phi[0:no]), phi[no::]))

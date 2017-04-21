@@ -21,7 +21,7 @@ def kZ(t, a = [], aff=(0, 1)):
   return aff[0] + aff[1] * complex(cos(2*pi*t) + 0.65 * cos(2*2*pi*t) - 0.65 + 1j * 1.5 * sin(2*pi*t))
 def kZp(t, a = [], aff=(0, 1)):
   return aff[1] * complex(-2*pi*sin(2*pi*t) - 2 * 0.65 * 2*pi*sin(2*2*pi*t) + 1j * 1.5 * 2*pi*cos(2*pi*t))
-def kZpp(t, a = []):
+def kZpp(t, a = [], aff=(0, 1)):
   return aff[1] * complex(-2*pi*2*pi*cos(2*pi*t) - 2 * 2 * 0.65 * 2*pi*2*pi*cos(2*2*pi*t) - 1j * 1.5 * sin(2*pi*t))
 
 # drop

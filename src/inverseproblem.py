@@ -133,7 +133,7 @@ def gap_init(R, a, reg, regmet, solver):
   if reg or reg == 1:
     if regmet == 'tikh':
       Rreg = computeRtikh(R, a)
-      _A_b = (Rreg, computeRHStikh)
+      _A_b = (Rreg, computeRHStikhold)
   else:
     _A_b = (R, computeRHS)
 
@@ -233,7 +233,9 @@ def computeLB(so, ld, c):
   L = computeL(so, ld, so.B[:, 1:], c)
   return so.B[:, 1:].T.dot(np.diagflat(so.w).dot(L))
 
-def computeLL0(ld, so, sb, c, testset=0):
+def computeLL0(ld, so, T, c, testset=0):
+  if T == ():
+    T = so.B[:, 1:]
   # Kp = ly.layerpotSD(s=so)
   # (nu, s0) = linf.eigmaxpowerw(A=Kp, s=so)
   # if testset == 0:
@@ -248,18 +250,38 @@ def computeLL0(ld, so, sb, c, testset=0):
   # if testset == 3:
   #   T = np.concatenate((V1_nu.T, V2_nu.T)).T
 
-  L0 = computeL0(so, so.B[:, 1:])
-  L = computeL(so, ld, so.B[:, 1:], c)
+  L0 = computeL0(so, T)
+  L = computeL(so, ld, T, c)
 
   LL0 = L - L0
   return LL0
-def computeLL0B(ld, so, sb, c, testset=0):
+def computeLL0B(ld, so, T, c, testset=0):
+  if T == ():
+    T = so.B[:, 1:]
+
   L0 = computeL0B(so)
   L = computeLB(so, ld, c)
 
   LL0 = L - L0
   return LL0
-
+def computeLLdiff(ld, so, T, c):
+  if T == ():
+    T = so.B[:, 1:]
+  allpsi0 = dpb.mapNtoD0(so, T, so.s0) 
+  Lo = ly.layerpotSD(s=so, t =ld)
+  rhsdiff = Lo.dot(allpsi0)
+  allpsi = dpb.mapNtoDdiff(so, ld, rhsdiff, c, so.s0)
+  Lo = ly.layerpotS(s=so)
+  Ld = ly.layerpotS(s=ld, t=so)
+  L = Lo.dot(allpsi[0:so.n]) + Ld.dot(allpsi[so.n::])
+  # means = sum(np.diagflat(so.w).dot(L)) / sum(so.w) # correct? strange sum by rows
+  means = np.ones(so.n).dot(np.diagflat(so.w).dot(L)) / sum(so.w)
+  L = L - np.array([means for k in range(so.n)])
+  return L
+def computeLLBdiff(ld, so, T, c):
+  L = computeLLdiff(ld, so, T, c)
+  return so.B[:, 1:].T.dot(np.diagflat(so.w).dot(L))
+  
 def computeRHSNtoD(LL0, z0, so, theta=0, RHS=()):
   if RHS != ():
     return RHS
@@ -404,10 +426,11 @@ def computeallsolsNtoD(_NtoD, pp, LL0, so, theta=0):
     # print('residual2= ',linalg.norm(R.dot(zeta)-RHS))
   return (ninv, res, nsolgap)
 
-def iallsols(isolver, pointstest, LL0, so, theta=0):
+def iallsols(isolver, pointstest, LL0, so, theta=0, ww=(), vv=(), i=()):
   res = ()
   nsolgap = ()
   ninv = np.empty(len(pointstest.x), float)
+  conv = np.empty((len(pointstest.x), len(i)), float)
   # S = linf.gramschmidtw(so)
   # res = np.empty((len(pp.x), 1), float)
   # nsolgap= np.empty((len(pp.x), 1), float)
@@ -427,7 +450,8 @@ def iallsols(isolver, pointstest, LL0, so, theta=0):
     # nsolgap[k]= norm(zeta)
     time.sleep(0.001)  
     ninv[k] = linalg.norm(RHS) / linalg.norm(zeta)
+    # conv[k] = vv[:, i].T.dot(RHS)**2 / ww[i]
     # print('residual= ',linalg.norm(Rreg.dot(zeta)-RHSreg))
     # print('residual2= ',linalg.norm(R.dot(zeta)-RHS))
-  return (ninv, res, nsolgap)
+  return (ninv, res, nsolgap, conv)
 
