@@ -11,11 +11,11 @@ def meshgrid(x1_x2_xn, y1_y2_yn=((), (), ())):
   x1, x2, xn = x1_x2_xn
   y1, y2, yn = y1_y2_yn
   xs = float(x2 - x1) / (xn - 1)
-  x = np.concatenate( (np.arange(x1, x2, xs), [x2]) )
+  x = np.concatenate( ([x1 + k * xs for k in range(xn-1)], [x2]) )
   if yn == ():
     (y1, y2, yn) = (x1, x2, xn)
   ys = float(y2 - y1) / (yn - 1)
-  y = np.concatenate( (np.arange(y1, y2, ys), [y2]) )
+  y = np.concatenate( ([y1 + k * ys for k in range(yn-1)], [y2]) )
   if x2 != x[-1]:
     print('Warning: end of x meshgrid')
   if y2 != y[-1]:

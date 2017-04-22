@@ -7,7 +7,7 @@ tt = time.time()
 tc = time.clock()
 #########
 
-h = 200.0
+h = 2.
 nsrc = 20
 
 R = ()
@@ -16,7 +16,7 @@ reg = 1
 regmet = 'tikh'
 solver = 'lu'
 
-theta = - np.pi / 4
+theta =  0
 #########
 c = 1.0 * (h + 1) / (h - 1)
 print('c = ', c)
@@ -26,13 +26,6 @@ if reg or reg == 1:
 else:
   print('N regularization with solver ', solver)
 
-#########
-# def ind(ww):
-#   i = []
-#   for h in range(len(ww)):
-#     if ww[h].real > 0:
-#       i.append(h)
-#   return i
 def x3domain():
   ns = nsrc
   
@@ -42,6 +35,7 @@ def x3domain():
 
   ro  = 3
   nso = ro * ns
+  nso = 200
   so = sg.Segment(nso, f_inargs = (sh.circle, (0, ro)), quad='ps')
 
   rd  = 1
@@ -108,9 +102,8 @@ def method_NtoD():
   
   x, y, pp = ipb.meshgrid((-2, 2, 40))
 
-  (ww, vv) = linalg.eig(-0.5*(LL0B + LL0B.T))
   # (ninv, res, nsolgap) = computeallsolsNtoD(_NtoD, pp, LL0, so, theta)
-  (ninv, res, nsolgap, conv) = ipb.iallsols(isolver_NtoD, pp, LL0, so, theta)
+  (ninv, res, nsolgap) = ipb.iallsols(isolver_NtoD, pp, LL0, so, theta)
   # ninv0to1 = ninv / max(ninv)
 
   plot.plot(x, y, ninv, 'cf')
@@ -120,12 +113,42 @@ def method_NtoD():
   # plt.savefig('fig_ninv.svg')
   return (ninv, res)
 
-############
+def method_F():
+  ld, so, sb = x3domain()
+  nsd, nso, nsb = ld.n, so.n, sb.n
 
+  LL0 = ipb.computeLL0(ld, so, T=so.B[:, 1:], c=c, testset=0)
+  # LL0B = ipb.computeLL0B(ld, so, T=so.B[:, 1:], c=c, testset=0)
+  L0 = ipb.computeL0(so, so.B[:, 1:])
+  L0B = ipb.computeL0B(so)
+
+  LLdiff = ipb.computeLLdiff(ld, so, T=np.eye(so.n), c=c)
+  LLBdiff = ipb.computeLLBdiff(ld, so, T=so.B[:, 1:], c=c)
+
+  _NtoD = NtoD_init(LL0, a, reg, regmet, solver)
+  RHS_args = {'L0' : L0, 'L0B' : L0B, 's' : so, 'z0' : (), 'theta' : theta}
+  RHS_fcom = ipb.NtoD_computeRHSB
+  isolver_NtoD = ipb.solver_init(LLBdiff, a, reg, regmet, solver, RHS_fcom=RHS_fcom, RHS_args=RHS_args)
+  
+  x, y, pp = ipb.meshgrid((-3, 3, 30))
+  w, v, wind, m0, linreg = ipb. eigselect(LLBdiff, m0=40)
+  
+  # (ninv, res, nsolgap) = computeallsolsNtoD(_NtoD, pp, LL0, so, theta)
+  (ninv, res, nsolgap) = ipb.ieig(w, v, wind, m0, linreg, isolver_NtoD, pp, LL0, so, theta)
+  #(ninv, res, nsolgap) = ipb.iallsols(isolver_NtoD, pp, LL0, so, theta)
+  # ninv0to1 = ninv / max(ninv)
+
+  plot.plot(x, y, ninv, 'im')
+  ld.plot(p=True)
+  so.plot()
+  plt.show(block=False)
+  # plt.savefig('fig_ninv.svg')
+  return (ninv, res)
+#############
 ld, so, sb = x3domain()
 nsd, nso, nsb = ld.n, so.n, sb.n
 
-ninv, res = method_gap()
+ninv, res = method_F()
 thetav = np.pi * np.array([0], float)
 for theta in np.array(thetav):
   # ninv = method_NtoD()

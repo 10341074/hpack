@@ -7,6 +7,7 @@ from numpy.linalg import norm
 from numpy.linalg import cond
 import scipy.linalg as linalg
 import numpy.linalg
+import scipy.stats
 import time
 
 from __types__ import *
@@ -426,11 +427,10 @@ def computeallsolsNtoD(_NtoD, pp, LL0, so, theta=0):
     # print('residual2= ',linalg.norm(R.dot(zeta)-RHS))
   return (ninv, res, nsolgap)
 
-def iallsols(isolver, pointstest, LL0, so, theta=0, ww=(), vv=(), i=()):
+def iallsols(isolver, pointstest, LL0, so, theta=0):
   res = ()
   nsolgap = ()
   ninv = np.empty(len(pointstest.x), float)
-  conv = np.empty((len(pointstest.x), len(i)), float)
   # S = linf.gramschmidtw(so)
   # res = np.empty((len(pp.x), 1), float)
   # nsolgap= np.empty((len(pp.x), 1), float)
@@ -453,5 +453,69 @@ def iallsols(isolver, pointstest, LL0, so, theta=0, ww=(), vv=(), i=()):
     # conv[k] = vv[:, i].T.dot(RHS)**2 / ww[i]
     # print('residual= ',linalg.norm(Rreg.dot(zeta)-RHSreg))
     # print('residual2= ',linalg.norm(R.dot(zeta)-RHS))
-  return (ninv, res, nsolgap, conv)
+  return (ninv, res, nsolgap)
+def eigselect(A, m0 = ()):
+  As = 0.5 * (A + A.T)
+  if max([max(abs(r)) for r in As]) > 1e-10:
+    print('Warning: not sym matrix in eigselect')
+  (w, v) = linalg.eig(As)
+  wind = [(abs(w)[k], k) for k in range(len(w))]
+  wind = sorted(wind, key=lambda x: x[0], reverse=True)
+  if m0 == ():
+    m0 = 15
+  if len(w) < m0:
+    print('Warning: too much eigs')
+  windt = list(map(list, zip(*wind)))
+  plt.plot(range(len(w)), np.log(windt[0]), 'b-+')
+  x = range(m0)
+  y = np.log(windt[0][0:m0])
+  linreg = scipy.stats.linregress(x, y)
+  plt.plot(x, linreg.intercept + linreg.slope*x, 'r-+')
+  plt.show(block=False)
+  return(w, v, wind, m0, linreg)
+def ieig(w, v, wind, m0, linreg, isolver, pointstest, LL0, so, theta=0):
+  windt = list(map(list, zip(*wind)))
+  res = ()
+  nsolgap = ()
+  ninv = np.empty(len(pointstest.x), float)
+  # S = linf.gramschmidtw(so)
+  # res = np.empty((len(pp.x), 1), float)
+  # nsolgap= np.empty((len(pp.x), 1), float)
+  # nn = np.empty(len(pp.x), float)
+  # (lu, piv) = linalg.lu_factor(computeRtikh(R, 1e-14))
+  weigths = ()
+  if len(w) == so.n:
+    print('scalar product n')
+    weigths = so.w
+  elif len(w) == so.n - 1:
+    print('scalar product n - 1')
+    weigths = np.ones(so.n - 1)
+  else:
+    print('Some error in length of w')
+  for k in range(len(pointstest.x)):
+    isolver.RHS_args['z0'] = pointstest.x[k]
+    # RHS = S[:, 1::].T.dot(ly.phi_theta(z0, so.x, theta))
+    # RHS = ly.phi_theta(z0, so.x, theta)
+    #RHSreg = LL0.T.dot(RHS)
+    RHS = isolver.RHS_fcom(isolver.RHS_args)
+    rhs_coeffs = RHS.T.dot(np.diagflat(weigths).dot(v[:, windt[1][0:m0]]))
+    x = range(m0)
+    rhs_y = np.array(np.log(abs(rhs_coeffs)**2), float) # needed to avoid Type error in Python
+    rhs_linreg = scipy.stats.linregress(x, rhs_y)
+    # RHSr =  isolver.RHS_f(isolver, RHS=RHS)
+    # zeta = isolver.solver_f(isolver.solver_a, RHSr)
+    # zeta = _gap[0](_gap[1], _gap[2](R, U, U_nu, z, so, theta))[0]
+    # zeta = linalg.lu_solve((lu, piv), RHSreg)
+    # res[k]= norm(R.dot(zeta) - RHS)
+    # nsolgap[k]= norm(zeta)
+    time.sleep(0.001)
+    ninv[k] = 0
+    if np.exp(rhs_linreg.slope) < np.exp(linreg.slope):
+      ninv[k] = 1
+    else:
+      ninv[k] = 0
+    # conv[k] = vv[:, i].T.dot(RHS)**2 / ww[i]
+    # print('residual= ',linalg.norm(Rreg.dot(zeta)-RHSreg))
+    # print('residual2= ',linalg.norm(R.dot(zeta)-RHS))
+  return (ninv, res, nsolgap)
 
