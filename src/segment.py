@@ -99,6 +99,10 @@ class Segment:
     self.Sw = linf.gramschmidtw(s=self, s0=s0)
     self.SL = linf.gramschmidt(s0=self.w)
     self.B = linf.gramschmidtw(s=self, s0=np.ones(self.n))
+    self.B = linf.gramschmidt(s0=np.ones(self.n))
+
+    self.BX = np.eye(self.n)
+    self.BY = np.eye(self.n)
     
   def plot(self, p=True):
     xx = [x.real for x in self.x]

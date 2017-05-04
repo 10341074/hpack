@@ -50,3 +50,34 @@ def gramschmidt(s0, E=()): # needs n
       S[k] = S[k] - E[k].dot(S[j]) * S[j]
     S[k] = S[k] / numpy.linalg.norm(S[k])
   return S.T
+
+def base_norm(A, w=()):
+  n = A.shape[1]
+  if w == ():
+    w = np.ones(A.shape[0])
+  for k in range(n):
+    norm = np.sqrt(sum(A[:, k]**2 * w))
+    A[:, k] = A[:, k] / norm
+  return A
+
+def base_mean(A, w=()):
+  n = A.shape[1]
+  if w == ():
+    w = np.ones(A.shape[0])
+  for k in range(n):
+    mean = sum(A[:, k] * w) / sum(w)
+    A[:, k] = A[:, k] - mean
+  return A
+
+# test one type of basis
+def m_basis(so):
+   so.BX = np.eye(so.n)
+   so.BX = base_mean(so.BX, so.w)
+   return so.BX
+def m_change_basis(v):
+  n = so.n
+  M = np.eye(so.n)
+  m = so.w.dot( np.eye(so.n) ) / sum(so.w)
+  S = base_mean(M, so.w)
+
+  return A

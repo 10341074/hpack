@@ -198,3 +198,30 @@ def layerpotDD(k=0, s=[], t=[], o=[]):
   return A
 
     
+def layerpotSDnow(k=0, s=(), t=()):
+  M = len(t.x);
+  N = len(s.x);
+  
+  d = np.array([t.x for k in range(N)])
+  d = d.T
+  d = d - np.array([s.x for k in range(M)])
+  r = abs(d)
+
+  n = np.array([t.nx for k in range(N)])
+  n = n.T
+  cosphi = - np.real(np.conj(n) * d) / r;
+  
+  A = fundsol_deriv(r, cosphi, k)
+  return A
+
+def layerpotSnow(k=0, s=(), t=()):
+  M = len(t.x)
+  N = len(s.x)
+
+  d = np.array([t.x for k in range(N)])
+  d = d.T
+  d = d - np.array([s.x for k in range(M)])
+  r = abs(d)
+
+  A = fundsol(r, k)
+  return A

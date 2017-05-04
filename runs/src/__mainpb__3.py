@@ -95,9 +95,6 @@ def method_NtoD():
   # so.BY = ly.layerpotSD(s=sb, t=so)
   # so.BX = linf.base_mean(so.BX, so.w)
   # so.BX = linf.base_norm(so.BX, so.w)
-
-  so.BX = so.BX[:, 1:]
-  so.BX = linf.base_mean(so.BX, so.w)
   
   if BY_set == 0:
     print('BY_set: no')
@@ -115,10 +112,6 @@ def method_NtoD():
     LL0B = ipb.computeLL0B(ld, so, T=so.BX, c=c, L0B=L0B, LB=LB)
     RHS_fcom = ipb.NtoD_computeRHSB
     M = LL0B
-  
-  BXr = np.eye(so.n)
-  BXr = linf.base_mean(BXr, so.w)
-  L0 = ipb.computeL0(so, BXr)
 
   RHS_args = {'L0' : L0, 'L0B' : L0B, 's' : so, 'z0' : (), 'theta' : theta} 
   isolver_NtoD = ipb.solver_init(M, a, reg, regmet, solver, RHS_fcom=RHS_fcom, RHS_args=RHS_args, BX=so.BX, BY=so.BY)

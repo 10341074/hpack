@@ -68,22 +68,20 @@ def computeallpsi(ld, sb, c):
     allpsi[:, k] = dpb.directpb(l=ld, c=c, z0=z0, A_f = (A, linalg.solve), rhs=rhs)
   return allpsi
 
-def computeR(allpsi, ld, so, sb, sv=(), testset=1):
-  if sv == ():
-    sv = sb
-  sd = ld.b[0]
+def computeU(allpsi, ld, so, sb):
   nso, nsb = so.n, sb.n
-
   U_psi = np.empty((nso, nsb), float)
   U_psi_nu = np.empty((nso, nsb), float)
   # kerS = sg.eval_layer(ld, so, exp = ly.layerpotS)
   # kerSD = sg.eval_layer(ld, so, exp = ly.layerpotSD)
-  kerS = ly.layerpotS(0, sd, so)
-  kerSD = ly.layerpotSD(0, sd, so)
+  kerS = ly.layerpotS(0, ld, so)
+  kerSD = ly.layerpotSD(0, ld, so)
 
-  for k in range(nsb):
-    U_psi[:,k] = kerS.dot(allpsi[:,k])
-    U_psi_nu[:,k] = kerSD.dot(allpsi[:,k])
+  # for k in range(nsb):
+  #   U_psi[:,k] = kerS.dot(allpsi[:,k])
+  #   U_psi_nu[:,k] = kerSD.dot(allpsi[:,k])
+  U_psi = kerS.dot(allpsi)
+  U_psi_nu = kerSD.dot(allpsi)
 
   # U_psi = np.diag(so.w) * U_psi
   # U_psi_nu = np.diag(so.w) * U_psi_nu
@@ -98,7 +96,15 @@ def computeR(allpsi, ld, so, sb, sv=(), testset=1):
   
   U = U + U_psi
   U_nu = U_nu + U_psi_nu
+  return (U, U_nu)
 
+def computeR(allpsi, ld, so, sb, sv=(), testset=1):
+  if sv == ():
+    sv = sb
+  nso, nsb = so.n, sb.n
+
+  U, U_nu = computeU(allpsi, ld, so, sb)
+  
   #lb = sg.Layer([sd], ly.layerpotS)
   testset = 1
   if testset == 1 or testset == 3:
@@ -131,21 +137,25 @@ def meshgrid(x1_x2_xn, y1_y2_yn=((), (), ())):
 #####################
 def computeL0(so, T):
   if T == ():
-    T = np.eye(so.n)
+    T = so.BX
+  print('computing L0')
   allpsi0 = dpb.mapNtoD0(so, T, so.s0) 
   Lo = ly.layerpotS(s=so)
   L0 = Lo.dot(allpsi0)
   means = np.ones(so.n).dot(np.diagflat(so.w).dot(L0)) / sum(so.w)
   L0 = L0 - np.array([means for k in range(so.n)])
   return L0
-def computeL0B(so, T):
-  if T == ():
-    T = so.B[:, 1:]
-  L0 = computeL0(so, T)
-  return so.B[:, 1:].T.dot(np.diagflat(so.w).dot(L0))
+def computeL0B(so, T, L0=()):
+  if L0 == ():
+    L0 = computeL0(so, T)
+    print('computing L0B')
+  else:
+    print('computing L0B from L0')
+  return so.BY.T.dot(np.diagflat(so.w).dot(L0))
 def computeL(ld, so, T, c):
   if T == ():
-    T = np.eye(so.n)
+    T = so.BX
+  print('computing L')
   allpsi = dpb.mapNtoD(so, ld, T, c, so.s0)
   Lo = ly.layerpotS(s=so)
   Ld = ly.layerpotS(s=ld, t=so)
@@ -154,16 +164,16 @@ def computeL(ld, so, T, c):
   means = np.ones(so.n).dot(np.diagflat(so.w).dot(L)) / sum(so.w)
   L = L - np.array([means for k in range(so.n)])
   return L
-def computeLB(ld, so, T, c):
+def computeLB(ld, so, T, c, L=()):
+  if L == ():
+    L = computeL(ld, so, T, c)
+    print('computing LB')
+  else:
+    print('computing LB from L')
+  return so.BY.T.dot(np.diagflat(so.w).dot(L))
+def computeLL0(ld, so, T, c, L0=(), L=()):
   if T == ():
-    T = so.B[:, 1:]
-  L = computeL(ld, so, T, c)
-  return so.B[:, 1:].T.dot(np.diagflat(so.w).dot(L))
-
-def computeLL0(ld, so, T, c, testset=0):
-  if T == ():
-    T = np.eye(so.n)
-  
+    T = so.BX
   # Kp = ly.layerpotSD(s=so)
   # (nu, s0) = linf.eigmaxpowerw(A=Kp, s=so)
   # if testset == 0:
@@ -177,22 +187,41 @@ def computeLL0(ld, so, T, c, testset=0):
   #   T = V2_nu
   # if testset == 3:
   #   T = np.concatenate((V1_nu.T, V2_nu.T)).T
+  if L0 == ():
+    L0 = computeL0(so, T)
+    print('computing L0/LL0')
+  else:
+    print('taking L0/LL0 from L0')
 
-  L0 = computeL0(so, T)
-  L = computeL(ld, so, T, c)
+  if L == ():
+    L = computeL(ld, so, T, c)
+    print('computing L/LL0')
+  else:
+    print('taking L/LL0 from L')
 
   LL0 = L - L0
   return LL0
-def computeLL0B(ld, so, T, c, testset=0):
-  if T == ():
-    T = so.B[:, 1:]
+def computeLL0B(ld, so, T, c, L0B=(), LB=()):
+  if L0B == ():
+    L0B = computeL0B(so, T)
+    print('computing L0B/LL0B')
+  else:
+    print('taking L0B/LL0B from L0B')
+  if LB == ():
+    LB = computeLB(ld, so, T, c)
+    print('computing LB/LL0B')
+  else:
+    print('taking LB/LL0B from LB')
 
-  L0 = computeL0B(so, T)
-  L = computeLB(ld, so, T, c)
-
-  LL0 = L - L0
+  LL0 = LB - L0B
   return LL0
-
+# def computeLL0B(ld, so, T, c, LL0=():
+#   if LL0 == ():
+#     LL0 = computeL(ld, so, T, c)
+#     print('computing LB')
+#   else:
+#     print('computing LB from L')
+#   return 
 def computeLLdiff(ld, so, T, c):
   if T == ():
     T = np.eye(so.n)
@@ -211,7 +240,7 @@ def computeLLBdiff(ld, so, T, c):
   if T == ():
     T = so.B[:, 1:]
   L = computeLLdiff(ld, so, T, c)
-  return so.B[:, 1:].T.dot(np.diagflat(so.w).dot(L))
+  return so.BY.T.dot(np.diagflat(so.w).dot(L))
   
 def computeRHSNtoD(LL0, z0, so, theta=0, RHS=()):
   if RHS != ():
@@ -250,8 +279,8 @@ def NtoD_init(LL0, a, reg, regmet, solver):
     print('Error: not valid solver')
   return _gap
 
-def solver_init(A, alpha, reg, regmet, solver, RHS_fcom, RHS_args):
-  s = lint.Solver(A=A, RHS_fcom=RHS_fcom, RHS_args=RHS_args)
+def solver_init(A, alpha, reg, regmet, solver, RHS_fcom, RHS_args, BX=(), BY=()):
+  s = lint.Solver(A=A, RHS_fcom=RHS_fcom, RHS_args=RHS_args, BX=BX, BY=BY)
   if reg or reg == 1:
     if regmet == 'tikh':
       s.A = computeAtikh(A, alpha)
@@ -288,8 +317,9 @@ def NtoD_computeneumb(args):
   rhs = ly.scalar(a, ly.phi_p(z0, s.x))
   neum = s.nx.real * xx * a.real + s.nx.real * xy * a.imag + \
          s.nx.imag * xy * a.real + s.nx.imag * yy * a.imag
+  # modified !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   neumb = neum.dot(np.diagflat(s.w).dot(s.B))
-  return neumb
+  return neum
 
 def NtoD_computeRHS(args, rhs=()):
   L0, L0B, s, z0, theta = args['L0'], args['L0B'], args['s'], args['z0'], args['theta']
@@ -297,7 +327,9 @@ def NtoD_computeRHS(args, rhs=()):
     return rhs
   a = np.cos(theta) + 1j * np.sin(theta)
   neumb = NtoD_computeneumb(args)
-  dirh = L0.dot(neumb[1:])
+  # print('mean', sum(neumb*s.w))
+  # need decomposition BX of neumb !!!!!!!!!!!!!!!!!!!
+  dirh = L0.dot(neumb[:])
   rhs = ly.scalar(a, ly.phi_p(z0, s.x))
   m = sum(rhs * s.w) / sum(s.w)
   rhs = rhs - m
@@ -314,22 +346,38 @@ def NtoD_computeRHSB(args, rhs=()):
   rhs = ly.scalar(a, ly.phi_p(z0, s.x))
   m = sum(rhs * s.w) / sum(s.w)
   rhs = rhs - m
-  rhs = s.B[:, 1:].T.dot(np.diagflat(s.w).dot(rhs))
+  rhs = s.BY.T.dot(np.diagflat(s.w).dot(rhs))
   return rhs - dirh
 
-def iallsols(isolver, pointstest):
-  res = ()
+def iallsols(isolver, pointstest, sb=(), so=()):
+  if so == ():
+    w = np.ones(isolver.A.shape[1])
+    print('Warning: not passed so in iallsols')
+  else:
+    w = so.w
+  res = np.empty(len(pointstest.x), float)
   nsolgap = ()
   ninv = np.empty(len(pointstest.x), float)
+  sol = np.empty((len(pointstest.x), isolver.A.shape[1]), float)
+
+  # test one point
+  isolver.RHS_args['z0'] = pointstest.x[0]
+  RHS = isolver.RHS_fcom(isolver.RHS_args)
+
+  rhs = np.empty((len(pointstest.x), len(RHS)), float)
   for k in range(len(pointstest.x)):
     isolver.RHS_args['z0'] = pointstest.x[k]
     RHS = isolver.RHS_fcom(isolver.RHS_args)
-    RHSr =  isolver.RHS_f(isolver, RHS=RHS)
+    RHSr = isolver.RHS_f(isolver, RHS=RHS)
     zeta = isolver.solver_f(isolver.solver_a, RHSr)
-
-    time.sleep(0.001)  
-    ninv[k] = linalg.norm(RHS) / linalg.norm(zeta)
-  return (ninv, res, nsolgap)
+    rhs[k] = RHS
+    sol[k] = zeta
+    zeta = isolver.BX.dot(zeta)
+    zeta = zeta - sum(zeta * w) / sum(w)
+    # zeta = ly.layerpotSD(s=sb, t=so).dot(zeta)
+    time.sleep(0.0005)
+    ninv[k] = np.sqrt(sum(RHS**2 * w)) / np.sqrt(sum(zeta**2 * w))
+  return (ninv, sol, rhs, res, nsolgap)
 
 def eigselect(A, m0 = ()):
   As = 0.5 * (A + A.T)

@@ -187,14 +187,14 @@ def mapNtoD(lo, ld, g, c, s0=()):
   
   row1 = np.concatenate((Kpo.T, Kd2o.T)).T
   row2 = np.concatenate((Ko2d.T, Kpd.T)).T
-  # Ks = np.concatenate((S.T.dot(row1), row2))
-  Ks = np.concatenate(( row1, row2 ))
+  Ks = np.concatenate((lo.SL.T.dot(row1), row2))
+  # Ks = np.concatenate(( row1, row2 ))
   Ks1 = Ks[1::, 1::]
 
   (lu, piv) = linalg.lu_factor(Ks1)
   if g.ndim == 1:
-    # gs = np.concatenate((S.T.dot(g), np.zeros(nd)))
-    gs = np.concatenate(( g, np.zeros(nd) ))
+    gs = np.concatenate((lo.SL.T.dot(g), np.zeros(nd)))
+    # gs = np.concatenate(( g, np.zeros(nd) ))
     gs1 = gs[1::]
     if verbose:
       print('mapNtoD condition number= ', numpy.linalg.cond(np.array(Ks, float)))
@@ -206,8 +206,8 @@ def mapNtoD(lo, ld, g, c, s0=()):
     phi = np.concatenate(( [0], phi1 ))
   elif g.ndim == 2:
     nt = g.shape[1]
-    # gs = np.concatenate(( S.T.dot(g), np.zeros((nd, nt)) ))
-    gs = np.concatenate(( g, np.zeros((nd, nt)) ))
+    gs = np.concatenate(( lo.SL.T.dot(g), np.zeros((nd, nt)) ))
+    # gs = np.concatenate(( g, np.zeros((nd, nt)) ))
     gs1 = gs[1::]
     # gs2t = gs2.T
     # phi2 = np.empty((nt, no + nd - 1))
