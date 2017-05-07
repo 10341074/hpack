@@ -11,6 +11,8 @@ def _lstsq(_m, _rhs):
 class Solver:
   def __init__(self, A=(), RHS_f=(), RHS_fcom=(), RHS_args=(), BX=(), BY=()):
     self.A = A
+    self.Ar = A
+    
     self.RHS_f = RHS_f
     self.RHS_fcom = RHS_fcom
     self.RHS_args = RHS_args

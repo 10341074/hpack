@@ -34,7 +34,7 @@ def gap_computeRHSB(args, RHS=()):
 def computeRHStikh(isolver, RHS=()):
   if RHS == ():
     print('Error, RHStikh cannot compute RHS')
-  A = isolver.ARHS
+  A = isolver.A
   return A.T.dot(RHS)
 
 def computeAtikh(A, alpha):
@@ -281,27 +281,26 @@ def NtoD_init(LL0, a, reg, regmet, solver):
 
 def solver_init(A, alpha, reg, regmet, solver, RHS_fcom, RHS_args, BX=(), BY=()):
   s = lint.Solver(A=A, RHS_fcom=RHS_fcom, RHS_args=RHS_args, BX=BX, BY=BY)
+  s.alpha = alpha
+  
   if reg or reg == 1:
     if regmet == 'tikh':
-      s.A = computeAtikh(A, alpha)
-      s.ARHS = A
+      s.Ar = computeAtikh(A, alpha)
       s.RHS_f = computeRHStikh
     else:
       print('regularization without specified method')
   else:
-    s.A = A
-    s.ARHS = A
     s.RHS_f = s.RHS_fcom
 
   if solver == 's':
-    s.solver_a = s.A
+    s.solver_a = s.Ar
     s.solver_f = _solve
   elif solver == 'lu':
-    (lu, piv) = linalg.lu_factor(s.A)
+    (lu, piv) = linalg.lu_factor(s.Ar)
     s.solver_a = (lu, piv)
     s.solver_f = _lu
   elif solver == 'lstsq':
-    s.solver_a = s.A
+    s.solver_a = s.Ar
     s.solver_f = _lstsq # to change
   else:
     print('Error: not valid solver')
@@ -351,14 +350,14 @@ def NtoD_computeRHSB(args, rhs=()):
 
 def iallsols(isolver, pointstest, sb=(), so=()):
   if so == ():
-    w = np.ones(isolver.A.shape[1])
+    w = np.ones(isolver.Ar.shape[1])# error
     print('Warning: not passed so in iallsols')
   else:
     w = so.w
   res = np.empty(len(pointstest.x), float)
   nsolgap = ()
   ninv = np.empty(len(pointstest.x), float)
-  sol = np.empty((len(pointstest.x), isolver.A.shape[1]), float)
+  sol = np.empty((len(pointstest.x), isolver.Ar.shape[1]), float)
 
   # test one point
   isolver.RHS_args['z0'] = pointstest.x[0]
@@ -377,6 +376,51 @@ def iallsols(isolver, pointstest, sb=(), so=()):
     # zeta = ly.layerpotSD(s=sb, t=so).dot(zeta)
     time.sleep(0.0005)
     ninv[k] = np.sqrt(sum(RHS**2 * w)) / np.sqrt(sum(zeta**2 * w))
+  return (ninv, sol, rhs, res, nsolgap)
+def iallsols_one(isolver, z0):
+  return
+def iallsols_opt(isolver, pointstest, sb=(), so=(), it_alpha=2):
+  if so == ():
+    w = np.ones(isolver.A.shape[1])
+    print('Warning: not passed so in iallsols')
+  else:
+    w = so.w
+  res = np.empty(len(pointstest.x), float)
+  nsolgap = ()
+  ninv = np.empty(len(pointstest.x), float)
+  sol = np.empty((len(pointstest.x), isolver.A.shape[1]), float)
+
+
+  save_alpha = np.empty((len(pointstest.x), it_alpha), float)
+  save_Delta = np.empty((len(pointstest.x), it_alpha), float)
+
+  # test one point
+  isolver.RHS_args['z0'] = pointstest.x[0]
+  RHS = isolver.RHS_fcom(isolver.RHS_args)
+
+  rhs = np.empty((len(pointstest.x), len(RHS)), float)
+  opt_rhs = np.empty((len(pointstest.x), len(RHS)), float)
+  for k in range(len(pointstest.x)):
+    isolver.RHS_args['z0'] = pointstest.x[k]
+    RHS = isolver.RHS_fcom(isolver.RHS_args)
+    RHSr = isolver.RHS_f(isolver, RHS=RHS)
+    
+    rhs[k] = RHS
+    opt_rhs = RHSr
+  for k in range(len(pointstest.x)):
+    zeta = isolver.solver_f(isolver.solver_a, RHSr)
+    # compute dz/da
+    zeta_p = isolver.solver_f(isolver.solver_a, zeta)
+    rhs[k] = RHS
+    opt_rhs = RHSr
+
+    sol[k] = zeta
+    zeta = isolver.BX.dot(zeta)
+    zeta = zeta - sum(zeta * w) / sum(w)
+    # zeta = ly.layerpotSD(s=sb, t=so).dot(zeta)
+    time.sleep(0.0005)
+    ninv[k] = np.sqrt(sum(RHS**2 * w)) / np.sqrt(sum(zeta**2 * w))
+    
   return (ninv, sol, rhs, res, nsolgap)
 
 def eigselect(A, m0 = ()):
