@@ -14,7 +14,7 @@ R = ()
 a = 1e-14
 reg = 1
 regmet = 'tikh'
-solver = 'lu'
+solver = 's'
 
 theta =  0
 
@@ -123,16 +123,18 @@ def method_NtoD():
   RHS_args = {'L0' : L0, 'L0B' : L0B, 's' : so, 'z0' : (), 'theta' : theta} 
   isolver_NtoD = ipb.solver_init(M, a, reg, regmet, solver, RHS_fcom=RHS_fcom, RHS_args=RHS_args, BX=so.BX, BY=so.BY)
 
-  x, y, pp = ipb.meshgrid((-2, 2, 20))
-  (ninv, sol, rhs, res, nsolgap) = ipb.iallsols(isolver_NtoD, pp, sb=sb, so=so)
- 
-  plot.plot(x, y, ninv, 'cf')
+  x, y, pp = ipb.meshgrid((-2, 1, 10))
+  # (ninv, sol, rhs, res, nsolgap) = ipb.iallsols(isolver_NtoD, pp, sb=sb, so=so)
+
+  ipb.iallsols_opt(isolver_NtoD, pp, so, it_alpha=2) 
+  ninv = isolver_NtoD.save_ratio[:, 1]
+  res = ()
+  plot.plot(x, y, ninv, 'im')
   ld.plot(p=True)
   so.plot()
   plt.show(block=False)
-  plt.savefig('fig_ninv.svg')
-  return (ninv, res)
-
+  # return (ninv, res)
+  return isolver_NtoD
 def method_F():
   ld, so, sb = x3domain()
   nsd, nso, nsb = ld.n, so.n, sb.n

@@ -282,7 +282,7 @@ def NtoD_init(LL0, a, reg, regmet, solver):
 def solver_init(A, alpha, reg, regmet, solver, RHS_fcom, RHS_args, BX=(), BY=()):
   s = lint.Solver(A=A, RHS_fcom=RHS_fcom, RHS_args=RHS_args, BX=BX, BY=BY)
   s.alpha = alpha
-  
+  s.delta = 1e-6
   if reg or reg == 1:
     if regmet == 'tikh':
       s.Ar = computeAtikh(A, alpha)
@@ -377,51 +377,62 @@ def iallsols(isolver, pointstest, sb=(), so=()):
     time.sleep(0.0005)
     ninv[k] = np.sqrt(sum(RHS**2 * w)) / np.sqrt(sum(zeta**2 * w))
   return (ninv, sol, rhs, res, nsolgap)
-def iallsols_one(isolver, z0):
+def iallsols_one(isolver, w, k, it_alpha_ind):
+  # 1st linear sistem
+  RHS = isolver.RHS_fcom(isolver.RHS_args)
+  RHSr = isolver.RHS_f(isolver, RHS=RHS)
+  isolver.Ar = computeAtikh(isolver.A, isolver.alpha)
+  zeta = linalg.solve(isolver.Ar, RHSr)
+    
+  # 2nd linear sistem
+  # isolver.Ar = computeAtikh(A, isolver.alpha)
+  zeta_p = linalg.solve(isolver.Ar, -zeta)
+
+  res = isolver.A.dot(zeta) - RHS
+  res = isolver.BY.dot(res)
+  v = isolver.A.dot(zeta_p)
+  v = isolver.BY.dot(v)
+  
+  disc = sum(res**2 * w) - isolver.delta**2
+  disc_p = 2 * sum(res * v * w)
+  # update alpha
+  isolver.alpha = isolver.alpha - disc / disc_p
+
+  # save
+  isolver.save_zeta[k, :, it_alpha_ind] = zeta
+  zeta = isolver.BX.dot(zeta)
+  zeta = zeta - sum(zeta * w) / sum(w)
+  # zeta = ly.layerpotSD(s=sb, t=so).dot(zeta)
+  isolver.save_sol[k, :, it_alpha_ind] = zeta
+  isolver.save_rhs[k, :, it_alpha_ind] = RHS
+
+  isolver.save_alpha[k, it_alpha_ind] = isolver.alpha
+  isolver.save_disc[k, it_alpha_ind] = disc
+  isolver.save_ratio[k, it_alpha_ind] = np.sqrt(sum(RHS**2 * w)) / np.sqrt(sum(zeta**2 * w))
   return
-def iallsols_opt(isolver, pointstest, sb=(), so=(), it_alpha=2):
-  if so == ():
-    w = np.ones(isolver.A.shape[1])
-    print('Warning: not passed so in iallsols')
-  else:
-    w = so.w
-  res = np.empty(len(pointstest.x), float)
-  nsolgap = ()
+def iallsols_opt(isolver, pointstest, so, it_alpha=2):
+  w = so.w
+
   ninv = np.empty(len(pointstest.x), float)
-  sol = np.empty((len(pointstest.x), isolver.A.shape[1]), float)
-
-
-  save_alpha = np.empty((len(pointstest.x), it_alpha), float)
-  save_Delta = np.empty((len(pointstest.x), it_alpha), float)
+  isolver.save_zeta = np.empty((len(pointstest.x), isolver.A.shape[1], it_alpha), float)
+  isolver.save_sol = np.empty((len(pointstest.x), so.n, it_alpha), float)
+  isolver.save_alpha = np.empty((len(pointstest.x), it_alpha), float)
+  isolver.save_disc = np.empty((len(pointstest.x), it_alpha), float)
+  isolver.save_ratio = np.empty((len(pointstest.x), it_alpha), float)
 
   # test one point
   isolver.RHS_args['z0'] = pointstest.x[0]
   RHS = isolver.RHS_fcom(isolver.RHS_args)
 
-  rhs = np.empty((len(pointstest.x), len(RHS)), float)
-  opt_rhs = np.empty((len(pointstest.x), len(RHS)), float)
+  isolver.save_rhs = np.empty((len(pointstest.x), len(RHS), it_alpha), float)
+  alpha_orig = isolver.alpha
   for k in range(len(pointstest.x)):
     isolver.RHS_args['z0'] = pointstest.x[k]
-    RHS = isolver.RHS_fcom(isolver.RHS_args)
-    RHSr = isolver.RHS_f(isolver, RHS=RHS)
-    
-    rhs[k] = RHS
-    opt_rhs = RHSr
-  for k in range(len(pointstest.x)):
-    zeta = isolver.solver_f(isolver.solver_a, RHSr)
-    # compute dz/da
-    zeta_p = isolver.solver_f(isolver.solver_a, zeta)
-    rhs[k] = RHS
-    opt_rhs = RHSr
-
-    sol[k] = zeta
-    zeta = isolver.BX.dot(zeta)
-    zeta = zeta - sum(zeta * w) / sum(w)
-    # zeta = ly.layerpotSD(s=sb, t=so).dot(zeta)
+    isolver.alpha = alpha_orig
+    for it_alpha_ind in range(it_alpha):
+      iallsols_one(isolver, w, k, it_alpha_ind)
     time.sleep(0.0005)
-    ninv[k] = np.sqrt(sum(RHS**2 * w)) / np.sqrt(sum(zeta**2 * w))
-    
-  return (ninv, sol, rhs, res, nsolgap)
+  return
 
 def eigselect(A, m0 = ()):
   As = 0.5 * (A + A.T)
