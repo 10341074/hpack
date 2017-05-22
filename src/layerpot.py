@@ -11,7 +11,8 @@ sin = np.sin
 real = np.real
 symmflagval = -999.; # all diag vals of this signifies symmetric - a hack
 def scalar(a, b):
-  return np.real(a * np.conj(b))
+  return a.real * b.real + a.imag * b.imag
+  # return np.real(a * np.conj(b))
 
 def fundsol(r = [], k = 0):
   return -1.0 / 2 / pi * log(abs(r))

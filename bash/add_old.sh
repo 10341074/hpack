@@ -2,9 +2,9 @@
 
 ################### TO CHANGE
 NAME_FIG_F=fig_ninv
-NAME_SRC_F="mainpb __checks__"
+NAME_SRC_F="__mainpb__ __checks__"
 #NAME_SRC_2=__checks__
-NAME_SRC=runs/src/mainpb_
+NAME_SRC=runs/src/__mainpb__
 NAME_FIG=runs/fig/$NAME_FIG_F
 NAME_SRC_DIR=runs/src/
 
@@ -41,7 +41,7 @@ echo $maxit
 for n in $NAME_SRC_F
 do
   #echo $FROM_SRC_DIR''$n''.py $NAME_SRC_DIR''$n''$maxit.py
-  cp $FROM_SRC_DIR''$n''.py $NAME_SRC_DIR''$n''_''$maxit.py
+  cp $FROM_SRC_DIR''$n''.py $NAME_SRC_DIR''$n''$maxit.py
 done
 ## ##################echo $FROM_SRC_DIR''__checks__.py $NAME_SRC''$maxit.py
 

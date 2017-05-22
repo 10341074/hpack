@@ -313,11 +313,11 @@ def NtoD_computeneumb(args):
   yy = ly.phi_yy(z0, s.x)
   # hess = [[xx, xy] , [xy, yy]]
   a = np.cos(theta) + 1j * np.sin(theta)
-  rhs = ly.scalar(a, ly.phi_p(z0, s.x))
+  # rhs = ly.scalar(a, ly.phi_p(z0, s.x))
   neum = s.nx.real * xx * a.real + s.nx.real * xy * a.imag + \
          s.nx.imag * xy * a.real + s.nx.imag * yy * a.imag
   # modified !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  neumb = neum.dot(np.diagflat(s.w).dot(s.B))
+  # neumb = neum.dot(np.diagflat(s.w).dot(s.B))
   return neum
 
 def NtoD_computeRHS(args, rhs=()):
@@ -328,7 +328,7 @@ def NtoD_computeRHS(args, rhs=()):
   neumb = NtoD_computeneumb(args)
   # print('mean', sum(neumb*s.w))
   # need decomposition BX of neumb !!!!!!!!!!!!!!!!!!!
-  dirh = L0.dot(neumb[:])
+  dirh = L0.dot(neumb)
   rhs = ly.scalar(a, ly.phi_p(z0, s.x))
   m = sum(rhs * s.w) / sum(s.w)
   rhs = rhs - m
@@ -341,43 +341,39 @@ def NtoD_computeRHSB(args, rhs=()):
   a = np.cos(theta) + 1j * np.sin(theta)
   # rhs = NtoD_computeRHS(args)
   neumb = NtoD_computeneumb(args)
-  dirh = L0B.dot(neumb[1:])
+  dirh = L0B.dot(neumb)
   rhs = ly.scalar(a, ly.phi_p(z0, s.x))
   m = sum(rhs * s.w) / sum(s.w)
   rhs = rhs - m
   rhs = s.BY.T.dot(np.diagflat(s.w).dot(rhs))
   return rhs - dirh
 
-def iallsols(isolver, pointstest, sb=(), so=()):
-  if so == ():
-    w = np.ones(isolver.Ar.shape[1])# error
-    print('Warning: not passed so in iallsols')
-  else:
-    w = so.w
-  res = np.empty(len(pointstest.x), float)
-  nsolgap = ()
-  ninv = np.empty(len(pointstest.x), float)
-  sol = np.empty((len(pointstest.x), isolver.Ar.shape[1]), float)
+def iallsols(isolver, pointstest, so):
+  w = so.w
+  isolver.save_zeta = np.empty((len(pointstest.x), isolver.A.shape[1]), float)
+  isolver.save_sol = np.empty((len(pointstest.x), so.n), float)
+  isolver.save_ratio = np.empty((len(pointstest.x),1), float)
 
   # test one point
   isolver.RHS_args['z0'] = pointstest.x[0]
   RHS = isolver.RHS_fcom(isolver.RHS_args)
 
-  rhs = np.empty((len(pointstest.x), len(RHS)), float)
+  isolver.save_rhs = np.empty((len(pointstest.x), len(RHS)), float)
   for k in range(len(pointstest.x)):
     isolver.RHS_args['z0'] = pointstest.x[k]
     RHS = isolver.RHS_fcom(isolver.RHS_args)
     RHSr = isolver.RHS_f(isolver, RHS=RHS)
     zeta = isolver.solver_f(isolver.solver_a, RHSr)
-    rhs[k] = RHS
-    sol[k] = zeta
+    isolver.save_zeta[k, :] = zeta
+    isolver.save_rhs[k] = RHS
     zeta = isolver.BX.dot(zeta)
     zeta = zeta - sum(zeta * w) / sum(w)
+    isolver.save_sol[k, :] = zeta
     # zeta = ly.layerpotSD(s=sb, t=so).dot(zeta)
     time.sleep(0.0005)
-    ninv[k] = np.sqrt(sum(RHS**2 * w)) / np.sqrt(sum(zeta**2 * w))
-  return (ninv, sol, rhs, res, nsolgap)
-def iallsols_one(isolver, w, k, it_alpha_ind):
+    isolver.save_ratio[k] = np.sqrt(sum(RHS**2 * w)) / np.sqrt(sum(zeta**2 * w))
+  return
+def iallsols_one(isolver, w, k, k_alpha):
   # 1st linear sistem
   RHS = isolver.RHS_fcom(isolver.RHS_args)
   RHSr = isolver.RHS_f(isolver, RHS=RHS)
@@ -393,31 +389,34 @@ def iallsols_one(isolver, w, k, it_alpha_ind):
   v = isolver.A.dot(zeta_p)
   v = isolver.BY.dot(v)
   
-  disc = sum(res**2 * w) - isolver.delta**2
+  disc = sum(res**2 * w)
+  isolver.save_disc[k, k_alpha] = np.sqrt(disc)
+  disc = disc - isolver.delta**2
   disc_p = 2 * sum(res * v * w)
-  # update alpha
-  isolver.alpha = isolver.alpha - disc / disc_p
 
   # save
-  isolver.save_zeta[k, :, it_alpha_ind] = zeta
+  isolver.save_zeta[k, :, k_alpha] = zeta
   zeta = isolver.BX.dot(zeta)
   zeta = zeta - sum(zeta * w) / sum(w)
   # zeta = ly.layerpotSD(s=sb, t=so).dot(zeta)
-  isolver.save_sol[k, :, it_alpha_ind] = zeta
-  isolver.save_rhs[k, :, it_alpha_ind] = RHS
+  isolver.save_sol[k, :, k_alpha] = zeta
+  isolver.save_rhs[k, :, k_alpha] = RHS
 
-  isolver.save_alpha[k, it_alpha_ind] = isolver.alpha
-  isolver.save_disc[k, it_alpha_ind] = disc
-  isolver.save_ratio[k, it_alpha_ind] = np.sqrt(sum(RHS**2 * w)) / np.sqrt(sum(zeta**2 * w))
+  isolver.save_alpha[k, k_alpha] = isolver.alpha
+  isolver.save_disc_p[k, k_alpha] = disc_p
+  isolver.save_ratio[k, k_alpha] = np.sqrt(sum(RHS**2 * w)) / np.sqrt(sum(zeta**2 * w))
+  # update alpha
+  isolver.alpha = isolver.alpha - disc / disc_p
   return
 def iallsols_opt(isolver, pointstest, so, it_alpha=2):
   w = so.w
 
-  ninv = np.empty(len(pointstest.x), float)
+  # ninv = np.empty(len(pointstest.x), float)
   isolver.save_zeta = np.empty((len(pointstest.x), isolver.A.shape[1], it_alpha), float)
   isolver.save_sol = np.empty((len(pointstest.x), so.n, it_alpha), float)
   isolver.save_alpha = np.empty((len(pointstest.x), it_alpha), float)
   isolver.save_disc = np.empty((len(pointstest.x), it_alpha), float)
+  isolver.save_disc_p = np.empty((len(pointstest.x), it_alpha), float)
   isolver.save_ratio = np.empty((len(pointstest.x), it_alpha), float)
 
   # test one point
@@ -429,9 +428,9 @@ def iallsols_opt(isolver, pointstest, so, it_alpha=2):
   for k in range(len(pointstest.x)):
     isolver.RHS_args['z0'] = pointstest.x[k]
     isolver.alpha = alpha_orig
-    for it_alpha_ind in range(it_alpha):
-      iallsols_one(isolver, w, k, it_alpha_ind)
-    time.sleep(0.0005)
+    for k_alpha in range(it_alpha):
+      iallsols_one(isolver, w, k, k_alpha)
+      time.sleep(0.005)
   return
 
 def eigselect(A, m0 = ()):
@@ -485,3 +484,29 @@ def ieig(w, v, wind, m0, linreg, isolver, pointstest, LL0, so, theta=0):
       ninv[k] = 0
   return (ninv, res, nsolgap)
 
+####################################
+def test_one(isolver, pointstest, so, alpha):
+  w = so.w
+
+  ninv = np.empty(len(pointstest.x), float)
+  isolver.save_zeta = np.empty((len(pointstest.x), isolver.A.shape[1], len(alpha)), float)
+  isolver.save_sol = np.empty((len(pointstest.x), so.n, len(alpha)), float)
+  isolver.save_alpha = np.empty((len(pointstest.x), len(alpha)), float)
+  isolver.save_disc = np.empty((len(pointstest.x), len(alpha)), float)
+  isolver.save_disc_p = np.empty((len(pointstest.x), len(alpha)), float)
+  isolver.save_ratio = np.empty((len(pointstest.x), len(alpha)), float)
+
+  # test one point
+  isolver.RHS_args['z0'] = pointstest.x[0]
+  RHS = isolver.RHS_fcom(isolver.RHS_args)
+
+  isolver.save_rhs = np.empty((len(pointstest.x), len(RHS), len(alpha)), float)
+  # alpha = np.array([al_start + al_step * k for k in range(len(alpha))])
+  for k in range(len(pointstest.x)):
+    isolver.RHS_args['z0'] = pointstest.x[k]
+
+    for k_alpha in range(len(alpha)):
+      isolver.alpha = alpha[k_alpha]
+      iallsols_one(isolver, w, k, k_alpha)
+      time.sleep(0.05)
+  return

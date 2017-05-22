@@ -52,15 +52,34 @@ import linfunc as linf
 # def line(p = 0, q = 1):
 #   args=(p, q)
 #   return (sZ, sZp, sZpp, args)
+class Basis:
+  def __init__(self, n, w=(), t='e'):
+    # t='e' canonical, eye basis
+    # t='c' constant function as first vector, can be orthogonal or w-orthogonal
+    if t == 'e':
+      self.B = np.eye(n)
+      self.Binv = np.eye(n)
+    elif t == 'c':
+      if w ==():
+        self.B = linf.gramschmidt(s0=np.ones(n))
+        self.Binv = self.B.T
+      else:
+        self.B = linf.gramschidtw(s0=np.ones(n), w=w)
+        self.Binv = self.B.T.dot(np.diagflat(w))
 
+def get_Basis(n, w=(), t='e'):
+  b = Basis(n, w, t)
+  return (b.B, b.Binv)
+  
 class Segment:
-  def __init__(self, n, Z_args=((), (), (), ()), f_inargs=((), ()), quad='ps', aff=(0, 1), Z=[], Zp=[], Zpp=[], args=[], f=[], inargs=[], periodic=False):
+  def __init__(self, n, Z_args=((), (), (), ()), f_inargs=((), ()), quad='ps', aff=(0, 1)):
+  # def __init__(self, n, Z_args=((), (), (), ()), f_inargs=((), ()), quad='ps', aff=(0, 1), Z=[], Zp=[], Zpp=[], args=[], f=[], inargs=[], periodic=False):
     # 'p' periodic
     # 'ps' periodic shift
-    if Z == []: # line to be deleted
-      Z, Zp, Zpp, args = Z_args
-    if f == []: # line to be deleted
-      f, inargs = f_inargs
+    # if Z == []: # line to be deleted
+    Z, Zp, Zpp, args = Z_args
+    # if f == []: # line to be deleted
+    f, inargs = f_inargs
     if f != [] and f!=():
       (Z, Zp, Zpp, args) = f(*inargs)
     if quad == 'p' or quad == 'ps':
@@ -94,6 +113,7 @@ class Segment:
       self.w[-1] = self.w[-1] * 0.5
     K = ly.layerpotSD(s=self)
     nu, s0 = linf.eigmaxpower(K)
+
     self.s0 = s0
     self.S = linf.gramschmidt(s0=s0)
     self.Sw = linf.gramschmidtw(s=self, s0=s0)
@@ -101,8 +121,8 @@ class Segment:
     self.B = linf.gramschmidtw(s=self, s0=np.ones(self.n))
     self.B = linf.gramschmidt(s0=np.ones(self.n))
 
-    self.BX = np.eye(self.n)
-    self.BY = np.eye(self.n)
+    self.BX, self.BXinv = get_Basis(self.n)
+    self.BY, self.BYinv = get_Basis(self.n)
     
   def plot(self, p=True):
     xx = [x.real for x in self.x]

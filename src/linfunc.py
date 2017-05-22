@@ -22,19 +22,21 @@ def eigmaxpowerw(A, s, nit=100):
     it = it + 1
   return (nu, q)
 
-def gramschmidtw(s, s0=(), E=()): # scalar product L2 space
+def gramschmidtw(s=(), s0=(), E=(), w=()): # scalar product L2 space
+  if w == ():
+    w = s.w
   if s0 == ():
     s0 = np.ones(s.n) # constant function
   n = len(s0)
   if E == ():
     E = np.diagflat(np.ones(n)) # identity
   S = np.empty((n, n))
-  S[0] = s0 / np.sqrt(sum(s0**2 * s.w))
+  S[0] = s0 / np.sqrt(sum(s0**2 * w))
   for k in range(1, n):
     S[k] = E[k]
     for j in range(k):
-      S[k] = S[k] - sum(E[k] * S[j] * s.w) * S[j]
-    S[k] = S[k] / np.sqrt(sum(S[k]**2 * s.w))
+      S[k] = S[k] - sum(E[k] * S[j] * w) * S[j]
+    S[k] = S[k] / np.sqrt(sum(S[k]**2 * w))
   return S.T
 gramschmidtBoundary = gramschmidtw
 
