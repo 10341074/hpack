@@ -55,16 +55,21 @@ p.domain()
 p.meshgrid((-2, 2, 40), (-1, 1, 20))
 # p.so.BX = linf.base_mean(p.so.BX, p.so.w)
 p.solver()
-q = [1.]
-p.p = sg.Pointset(q)
-# p.plot_domain()
-p.ipb()
+# q = [1.]
+# p.p = sg.Pointset(q)
+# # p.plot_domain()
+# p.ipb()
 
-L0 = computeL0(p.so, p.so.BX, p.pp)
-z = L0.dot(p.isolver.save_sol[0])
-p.plot(z)
+# L0 = computeL0(p.so, p.so.BX, p.pp)
+# z = L0.dot(p.isolver.save_sol[0])
+# p.plot(z)
 
 
-RHS_args = {'L0' : L0, 'L0B' : (), 's' : p.so, 'z0' : q, 'theta' : p.theta}
-z = NtoD_computeRHS(RHS_args, p.pp, rhs=())
-p.plot(z)
+# RHS_args = {'L0' : L0, 'L0B' : (), 's' : p.so, 'z0' : q, 'theta' : p.theta}
+# z = NtoD_computeRHS(RHS_args, p.pp, rhs=())
+# p.plot(z)
+h = 2
+c = 1.0 * (h + 1) / (h - 1)
+L0 = ipb.computeL0(p.so, p.so.BX)
+LL0 = ipb.computeLL0(p.ld, p.so, T=(), c=c)
+LLdiff = ipb.computeLLdiff(p.ld, p.so, T=(), c=c)

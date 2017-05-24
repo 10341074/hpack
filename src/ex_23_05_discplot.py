@@ -52,19 +52,26 @@ def NtoD_computeRHS(args, p, rhs=()):
 
 p = m.EIT()
 p.domain()
-p.meshgrid((-2, 2, 40), (-1, 1, 20))
+p.meshgrid((-2, 2, 30))
 # p.so.BX = linf.base_mean(p.so.BX, p.so.w)
 p.solver()
 q = [1.]
 p.p = sg.Pointset(q)
-# p.plot_domain()
-p.ipb()
+p.p = p.pp
+# # p.plot_domain()
+# p.ipb()
+alpha = np.array([1e-16 + 1e-16 * k for k in range(10)])
+alpha = np.concatenate((alpha, [1e-15*10**k for k in range(8)]))
 
-L0 = computeL0(p.so, p.so.BX, p.pp)
-z = L0.dot(p.isolver.save_sol[0])
-p.plot(z)
+#p.test_alpha(alpha=alpha)
 
 
-RHS_args = {'L0' : L0, 'L0B' : (), 's' : p.so, 'z0' : q, 'theta' : p.theta}
-z = NtoD_computeRHS(RHS_args, p.pp, rhs=())
-p.plot(z)
+
+# L0 = computeL0(p.so, p.so.BX, p.pp)
+# z = L0.dot(p.isolver.save_sol[0])
+# p.plot(z)
+
+
+#
+p.solver()
+p.ipb_opt(it_alpha=18)

@@ -151,7 +151,8 @@ def computeL0B(so, T, L0=()):
     print('computing L0B')
   else:
     print('computing L0B from L0')
-  return so.BY.T.dot(np.diagflat(so.w).dot(L0))
+  # return so.BY.T.dot(np.diagflat(so.w).dot(L0))
+  return so.BYinv.dot(L0)
 def computeL(ld, so, T, c):
   if T == ():
     T = so.BX
@@ -170,7 +171,8 @@ def computeLB(ld, so, T, c, L=()):
     print('computing LB')
   else:
     print('computing LB from L')
-  return so.BY.T.dot(np.diagflat(so.w).dot(L))
+  # return so.BY.T.dot(np.diagflat(so.w).dot(L))
+  return so.BYinv.dot(L)
 def computeLL0(ld, so, T, c, L0=(), L=()):
   if T == ():
     T = so.BX
@@ -224,7 +226,7 @@ def computeLL0B(ld, so, T, c, L0B=(), LB=()):
 #   return 
 def computeLLdiff(ld, so, T, c):
   if T == ():
-    T = np.eye(so.n)
+    T = so.BX
   allpsi0 = dpb.mapNtoD0(so, T, so.s0) 
   Lo = ly.layerpotSD(s=so, t =ld)
   rhsdiff = Lo.dot(allpsi0)
@@ -348,6 +350,26 @@ def NtoD_computeRHSB(args, rhs=()):
   rhs = s.BY.T.dot(np.diagflat(s.w).dot(rhs))
   return rhs - dirh
 
+def func_disc_pow1_n(res, sol, w, delta):
+  # \|Kx^{\alpha,\delta} - y^\delta\| - \delta \|x^{\alpha,\delta}\|
+  return np.sqrt(sum(res**2 * w)) - delta * np.sqrt(sum(sol**2 * w))
+def func_disc_p_pow1_n(res, Kdx, sol, sol_p, w, delta):
+  # \frac{1}{\|Kx^{\alpha,\delta} - y^\delta\|} \langle  Kx^{\delta, \alpha} - y^\delta, K\frac{d}{d\alpha}x^{\alpha, \delta}\rangle -\delta\frac{1}{\|x^{\alpha,\delta}\|}\langle x^{\alpha, \delta}, \frac{d}{d\alpha}x^{\alpha, \delta}\rangle
+  return sum(res * Kdx * w) / np.sqrt(sum(res**2 * w)) - delta * sum(sol * sol_p * w) / np.sqrt(sum(sol**2 *w))
+
+
+def func_alpha_newton(alpha, disc, disc_p):
+  return alpha - disc / disc_p
+
+def func_alpha_bis(alpha, alpha_l, alpha_r, disc):
+  if disc > 0:
+    alpha_r = alpha
+  else:
+    alpha_l = alpha
+  alpha = (alpha_l + alpha_r) * 0.5
+  # print('from bisec: alpha= ',alpha)
+  return (alpha, alpha_l, alpha_r)
+
 def iallsols(isolver, pointstest, so):
   w = so.w
   isolver.save_zeta = np.empty((len(pointstest.x), isolver.A.shape[1]), float)
@@ -386,27 +408,37 @@ def iallsols_one(isolver, w, k, k_alpha):
 
   res = isolver.A.dot(zeta) - RHS
   res = isolver.BY.dot(res)
-  v = isolver.A.dot(zeta_p)
-  v = isolver.BY.dot(v)
-  
-  disc = sum(res**2 * w)
-  isolver.save_disc[k, k_alpha] = np.sqrt(disc)
-  disc = disc - isolver.delta**2
-  disc_p = 2 * sum(res * v * w)
+  Kdx = isolver.A.dot(zeta_p)
+  Kdx = isolver.BY.dot(Kdx)
 
   # save
   isolver.save_zeta[k, :, k_alpha] = zeta
-  zeta = isolver.BX.dot(zeta)
-  zeta = zeta - sum(zeta * w) / sum(w)
+  sol = isolver.BX.dot(zeta)
+  sol = sol - sum(sol * w) / sum(w)
   # zeta = ly.layerpotSD(s=sb, t=so).dot(zeta)
-  isolver.save_sol[k, :, k_alpha] = zeta
+  isolver.save_sol[k, :, k_alpha] = sol
   isolver.save_rhs[k, :, k_alpha] = RHS
+
+  sol_p = isolver.BX.dot(zeta_p)
+  sol_p = sol_p - sum(sol_p * w) / sum(w)
+
+  # old
+  # disc = sum(res**2 * w)
+  # isolver.save_disc[k, k_alpha] = np.sqrt(disc)
+
+  # disc = np.sqrt(disc) - isolver.delta * np.sqrt(sum(zeta**2 * w))
+  # disc_p = 2 * sum(res * Kdx * w)
+  disc = func_disc_pow1_n(res, sol, w, isolver.delta)
+  disc_p = func_disc_p_pow1_n(res, Kdx, sol, sol_p, w, isolver.delta)
+  isolver.save_disc[k, k_alpha] = disc
 
   isolver.save_alpha[k, k_alpha] = isolver.alpha
   isolver.save_disc_p[k, k_alpha] = disc_p
-  isolver.save_ratio[k, k_alpha] = np.sqrt(sum(RHS**2 * w)) / np.sqrt(sum(zeta**2 * w))
+  isolver.save_ratio[k, k_alpha] = np.sqrt(sum(RHS**2 * w)) / np.sqrt(sum(sol**2 * w))
+  
   # update alpha
-  isolver.alpha = isolver.alpha - disc / disc_p
+  # isolver.alpha = isolver.alpha - disc / disc_p
+  isolver.alpha, isolver.alpha_l, isolver.alpha_r = func_alpha_bis(isolver.alpha, isolver.alpha_l, isolver.alpha_r, disc)
   return
 def iallsols_opt(isolver, pointstest, so, it_alpha=2):
   w = so.w
@@ -428,11 +460,13 @@ def iallsols_opt(isolver, pointstest, so, it_alpha=2):
   for k in range(len(pointstest.x)):
     isolver.RHS_args['z0'] = pointstest.x[k]
     isolver.alpha = alpha_orig
+    isolver.alpha_l = 1e-16
+    isolver.alpha_r = alpha_orig
     for k_alpha in range(it_alpha):
       iallsols_one(isolver, w, k, k_alpha)
-      time.sleep(0.005)
+      # time.sleep(0.005)
   return
-
+#####################################################
 def eigselect(A, m0 = ()):
   As = 0.5 * (A + A.T)
   if max([max(abs(r)) for r in As]) > 1e-10:
@@ -482,6 +516,7 @@ def ieig(w, v, wind, m0, linreg, isolver, pointstest, LL0, so, theta=0):
       ninv[k] = 1
     else:
       ninv[k] = 0
+    ninv[k] = np.exp(rhs_linreg.slope) - np.exp(linreg.slope)
   return (ninv, res, nsolgap)
 
 ####################################
@@ -502,11 +537,14 @@ def test_one(isolver, pointstest, so, alpha):
 
   isolver.save_rhs = np.empty((len(pointstest.x), len(RHS), len(alpha)), float)
   # alpha = np.array([al_start + al_step * k for k in range(len(alpha))])
+  alpha_orig = isolver.alpha
   for k in range(len(pointstest.x)):
     isolver.RHS_args['z0'] = pointstest.x[k]
+    isolver.alpha_l = 1e-16
+    isolver.alpha_r = alpha_orig
 
     for k_alpha in range(len(alpha)):
       isolver.alpha = alpha[k_alpha]
       iallsols_one(isolver, w, k, k_alpha)
-      time.sleep(0.05)
+      time.sleep(0.005)
   return

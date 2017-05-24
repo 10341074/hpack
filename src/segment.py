@@ -64,7 +64,7 @@ class Basis:
         self.B = linf.gramschmidt(s0=np.ones(n))
         self.Binv = self.B.T
       else:
-        self.B = linf.gramschidtw(s0=np.ones(n), w=w)
+        self.B = linf.gramschmidtw(s0=np.ones(n), w=w)
         self.Binv = self.B.T.dot(np.diagflat(w))
 
 def get_Basis(n, w=(), t='e'):
