@@ -13,7 +13,7 @@ def sZ(t, p = 0, q = 1, aff=(0, 1)):
   return aff[0] + aff[1] * complex(p + t * (q - p))
 def sZp(t, p = 0, q = 1, aff=(0, 1)):
   return aff[1] * complex(q - p)
-def sZpp(t, p = 0, q = 1):
+def sZpp(t, p = 0, q = 1, aff=(0, 1)):
   return aff[1] * complex(0)
 
 # kite

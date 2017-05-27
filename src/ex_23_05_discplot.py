@@ -1,5 +1,6 @@
 from __load__ import *
 import mainpb as m
+import dill
 
 def computeL0(so, T, p):
   if T == ():
@@ -74,4 +75,37 @@ alpha = np.concatenate((alpha, [1e-15*10**k for k in range(8)]))
 
 #
 p.solver()
-p.ipb_opt(it_alpha=18)
+it_alpha = 18
+p.ipb_opt(it_alpha=it_alpha)
+p.alpha_fixed_ratio(0)
+p.plot()
+plt.savefig('prova_0.svg')
+p.alpha_fixed_ratio(-1)
+p.plot()
+plt.savefig('prova_end.svg')
+
+p.plot()
+dill.dump_session('dill.pkl')
+
+
+end = input('Press enter')
+
+# # do this first:
+# ! sudo apt-get install cpulimit
+
+# from os import getpid
+# from resource import setrlimit, RLIMIT_RSS, RLIM_INFINITY, getrusage, RUSAGE_SELF
+
+# # limit CPU: use only 1% of 1 CPU
+# pid = getpid()
+# ! cpulimit -b -p $pid -c 1 -l 1
+
+# # limit memory
+# setrlimit(RLIMIT_RSS, (50*(1024**2),RLIM_INFINITY))
+# print getrusage(RUSAGE_SELF).ru_maxrss
+
+# # this will take a lot of time
+# % time sum(xrange(10**8))
+
+# # this will fall over with MemoryError
+# sum(range(50*100*(1024**2)))

@@ -281,10 +281,10 @@ def NtoD_init(LL0, a, reg, regmet, solver):
     print('Error: not valid solver')
   return _gap
 
-def solver_init(A, alpha, reg, regmet, solver, RHS_fcom, RHS_args, BX=(), BY=()):
+def solver_init(A, alpha, delta, reg, regmet, solver, RHS_fcom, RHS_args, BX=(), BY=()):
   s = lint.Solver(A=A, RHS_fcom=RHS_fcom, RHS_args=RHS_args, BX=BX, BY=BY)
   s.alpha = alpha
-  s.delta = 1e-6
+  s.delta = delta
   if reg or reg == 1:
     if regmet == 'tikh':
       s.Ar = computeAtikh(A, alpha)

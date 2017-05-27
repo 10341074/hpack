@@ -9,7 +9,7 @@ float = float_t
 
 import plot
 import gradedmesh as graded
-# import shapes as sh
+import shapes as sh
 import layerpot as ly
 
 import linfunc as linf
@@ -103,7 +103,7 @@ class Segment:
     self.ddx = np.array([Zpp(t, *args, aff=aff) for t in self.t], np.cfloat)    
     # s.kappa = -real(conj(-1i*dZdt).*s.Zpp(s.t)) ./ s.speed.^3; %curvature
     self.kappa = -np.real(np.conj(-1j * self.dx) * self.ddx) / (self.speed**3) # signed curvature
-    if quad == 'p' or quad == 'ps' or periodic:
+    if quad == 'p' or quad == 'ps':
       self.w = np.array([sp / n for sp in self.speed], float)
     elif quad == 'gp':
       self.w = np.array([sp / n for sp in self.speed], float) * self.a      
@@ -202,6 +202,15 @@ def eval_layer(l, p, exp=[]):
 # def Zpp(t):
 #   return complex(2 * pi * 2 * pi * cos(2 * pi * t) + 1j * 2 * pi * 2 * pi * sin(2 * pi * t))
 
+def poly(vx, n):
+  nvx = len(vx)
+  s = []
+
+  for j in range(nvx):
+    s.append(Segment(n, f_inargs=(sh.line, (vx[j-1], vx[j])), quad='gp'))
+  b = Boundary(s)
+  return b
+  
 
 
 

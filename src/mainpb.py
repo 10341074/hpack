@@ -12,6 +12,7 @@ nsrc = 20
 
 R = ()
 alpha = 1e-10
+delta = 1e-10
 a = alpha # to be deleted
 reg = 1
 regmet = 'tikh'
@@ -58,6 +59,8 @@ def x3domain(nsb=0, nso=0, nsd=0):
   
   bd1 = sg.Boundary([sd1])
   bd2 = sg.Boundary([sd2])
+
+  # bd2 = sg.poly([2, 1 +1.5j, -1 +1j], n=20)
   ld = sg.Layer([bd1, bd2], ly.layerpotSD)
   return (ld, so, sb)
 
@@ -72,7 +75,7 @@ def method_gap():
   
   RHS_args = {'R': R , 'U': U, 'U_nu': U_nu, 'z0': (), 'so': so, 'theta': theta}
   RHS_fcom = ipb.gap_computeRHSB
-  isolver_gap = ipb.solver_init(R, a, reg, regmet, solver, RHS_fcom=RHS_fcom, RHS_args=RHS_args, BX=so.BX, BY=so.BY)
+  isolver_gap = ipb.solver_init(R, a, delta, reg, regmet, solver, RHS_fcom=RHS_fcom, RHS_args=RHS_args, BX=so.BX, BY=so.BY)
   x, y, pp = meshgrid((-2, 2 , 40))
 
   (ninv, sol, rhs, res, nsolgap) = ipb.iallsols(isolver_gap, pp, so=so)
@@ -129,7 +132,7 @@ def method_NtoD(p=()):
   L = ipb.computeL(ld, so, BXr, c)
 
   RHS_args = {'L0' : L0, 'L0B' : L0B, 's' : so, 'z0' : (), 'theta' : theta} 
-  isolver_NtoD = ipb.solver_init(M, a, reg, regmet, solver, RHS_fcom=RHS_fcom, RHS_args=RHS_args, BX=so.BX, BY=so.BY)
+  isolver_NtoD = ipb.solver_init(M, a, delta, reg, regmet, solver, RHS_fcom=RHS_fcom, RHS_args=RHS_args, BX=so.BX, BY=so.BY)
 
   x, y, pp = ipb.meshgrid((-2, 1, 20))
   if p == ():
@@ -162,7 +165,7 @@ def method_F():
 
   RHS_args = {'L0' : L0, 'L0B' : L0B, 's' : so, 'z0' : (), 'theta' : theta}
   RHS_fcom = ipb.NtoD_computeRHS
-  isolver_NtoD = ipb.solver_init(LLdiff, a, reg, regmet, solver, RHS_fcom=RHS_fcom, RHS_args=RHS_args, BX=so.BX, BY=so.BY)
+  isolver_NtoD = ipb.solver_init(LLdiff, a, delta, reg, regmet, solver, RHS_fcom=RHS_fcom, RHS_args=RHS_args, BX=so.BX, BY=so.BY)
   
   x, y, pp = ipb.meshgrid((-2, 2, 40))
   w, v, wind, m0, linreg = ipb. eigselect(LLdiff, m0=40)
@@ -190,7 +193,7 @@ tc = time.clock() - tc
 print('time wall-clock = ', tt)
 print('time clock = ', tc)
 
-end = input('Press enter')
+#end = input('Press enter')
 ############
 def test_NtoD():
   g = ly.phi_n(-8, so.x, so.n)
@@ -233,7 +236,7 @@ def f(sb, so, ld):
     M = LL0B
 
   RHS_args = {'L0' : L0, 'L0B' : L0B, 's' : so, 'z0' : (), 'theta' : theta} 
-  isolver_NtoD = ipb.solver_init(M, a, reg, regmet, solver, RHS_fcom=RHS_fcom, RHS_args=RHS_args)
+  isolver_NtoD = ipb.solver_init(M, a, delta, reg, regmet, solver, RHS_fcom=RHS_fcom, RHS_args=RHS_args)
 
   x, y, pp = ipb.meshgrid((-2, 2, 40))
   (ninv, sol, rhs, res, nsolgap) = ipb.iallsols(isolver_NtoD, pp, sb, so)
@@ -281,7 +284,7 @@ def method_test():
   L0 = ipb.computeL0(so, BXr)
 
   RHS_args = {'L0' : L0, 'L0B' : L0B, 's' : so, 'z0' : (), 'theta' : theta} 
-  isolver_NtoD = ipb.solver_init(M, a, reg, regmet, solver, RHS_fcom=RHS_fcom, RHS_args=RHS_args, BX=so.BX, BY=so.BY)
+  isolver_NtoD = ipb.solver_init(M, a, delta, reg, regmet, solver, RHS_fcom=RHS_fcom, RHS_args=RHS_args, BX=so.BX, BY=so.BY)
 
   x, y, pp = ipb.meshgrid((-2, 1, 10))
   # (ninv, sol, rhs, res, nsolgap) = ipb.iallsols(isolver_NtoD, pp, sb=sb, so=so)
@@ -298,10 +301,11 @@ def method_test():
   return isolver_NtoD
 
 class EIT:
-  def __init__(self, a = a, theta = theta):
+  def __init__(self, alpha = alpha, delta = delta, theta = theta):
     self.meshgrid_args = (-2, 1, 20)
     self.p = ()
     self.alpha = alpha
+    self.delta = delta
     self.theta = theta
     return
   def domain(self, nsb=0, nso=0, nsd=0):
@@ -352,7 +356,7 @@ class EIT:
     L = ipb.computeL(self.ld, self.so, BXr, c)
     
     RHS_args = {'L0' : self.L0, 'L0B' : self.L0B, 's' : self.so, 'z0' : (), 'theta' : self.theta} 
-    self.isolver = ipb.solver_init(self.K, self.alpha, reg, regmet, solver, RHS_fcom=RHS_fcom, RHS_args=RHS_args, BX=self.so.BX, BY=self.so.BY)
+    self.isolver = ipb.solver_init(self.K, self.alpha, self.delta, reg, regmet, solver, RHS_fcom=RHS_fcom, RHS_args=RHS_args, BX=self.so.BX, BY=self.so.BY)
   def ipb(self):
     ipb.iallsols(self.isolver, self.p, self.so)  
     # ipb.iallsols_opt(isolver_NtoD, pp, so, it_alpha=2)
