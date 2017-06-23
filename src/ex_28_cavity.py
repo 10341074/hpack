@@ -51,9 +51,12 @@ def NtoD_computeRHS(args, p, rhs=()):
   rhs = rhs - m
   return rhs - dirh
 
+h = 5
+c = 1.0 * (h + 1) / (h - 1)
+
 p = m.EIT()
 p.domain()
-p.meshgrid((-4, 4, 30))
+p.meshgrid((-2, 2, 50))
 # p.so.BX = linf.base_mean(p.so.BX, p.so.w)
 p.solver()
 q = [1.]
@@ -64,47 +67,13 @@ p.p = p.pp
 alpha = np.array([1e-16 + 1e-16 * k for k in range(10)])
 alpha = np.concatenate((alpha, [1e-15*10**k for k in range(8)]))
 
-#p.test_alpha(alpha=alpha)
+L0 = computeL0(p.so, p.so.BX, p.pp)
+L = computeL(p.ld, p.so, p.so.BX, c, p.pp)
+e0 = np.zeros(L0.shape[1])
+e0[0] = 1
+z = L.dot(e0)
+p.plot(z, t='cf')
 
-
-
-# L0 = computeL0(p.so, p.so.BX, p.pp)
-# z = L0.dot(p.isolver.save_sol[0])
-# p.plot(z)
-
-#
-p.solver()
-it_alpha = 15
-p.ipb_opt(it_alpha=it_alpha)
-p.alpha_fixed_ratio(0)
-p.plot()
-#plt.savefig('prova_0.svg')
-p.alpha_fixed_ratio(-1)
-p.plot()
-#plt.savefig('prova_end.svg')
-
-p.plot()
-# dill.dump_session('dill.pkl')
-# dill.load_session('dill.pkl')
-
-end = input('Press enter')
-
-# # do this first:
-# ! sudo apt-get install cpulimit
-
-# from os import getpid
-# from resource import setrlimit, RLIMIT_RSS, RLIM_INFINITY, getrusage, RUSAGE_SELF
-
-# # limit CPU: use only 1% of 1 CPU
-# pid = getpid()
-# ! cpulimit -b -p $pid -c 1 -l 1
-
-# # limit memory
-# setrlimit(RLIMIT_RSS, (50*(1024**2),RLIM_INFINITY))
-# print getrusage(RUSAGE_SELF).ru_maxrss
-
-# # this will take a lot of time
-# % time sum(xrange(10**8))
-
-# # this will fall over with MemoryError
-# sum(range(50*100*(1024**2)))
+# allpsi = dpb.mapNtoD(ex.p.so, ex.p.ld, ex.p.so.BX, ex.c, ex.p.so.s0)
+# sum(allpsi[-100::, :])
+# sum(allpsi[-200:-100, :])

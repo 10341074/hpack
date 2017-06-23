@@ -2,6 +2,7 @@ from __load__ import *
 # from inverseproblem import *
 import inverseproblem as ipb
 #import __mainpb__ as _m # for test
+import geometries as gm
 
 tt = time.time()
 tc = time.clock()
@@ -21,6 +22,8 @@ solver = 'lu'
 theta =  0
 
 BY_set = 0
+
+pause = 0
 #########
 c = 1.0 * (h + 1) / (h - 1)
 print('c = ', c)
@@ -48,20 +51,24 @@ def x3domain(nsb=0, nso=0, nsd=0):
 
   rd  = 1
   if nsd == 0:
-    nsd = 100
+    nsd = 80
   # sd = sg.Segment(nsd, f_inargs = (sh.circle, (0, rd)), quad='ps')
   sd = sg.Segment(nsd, f_inargs = (sh.ellipse, (0, 2*rd, rd)), quad='ps')
   # sd = sg.Segment(nsd, Z_args = (sh.dZ, sh.dZp, sh.dZpp, ()), quad='gp', aff=(0, 0.8 + 0.8j))
   # sd = sg.Segment(nsd, Z_args = (sh.kZ, sh.kZp, sh.kZpp, ()), quad='ps', aff=(0, 0.8 + 0.8j))
-  sd1 = sg.Segment(50, f_inargs = (sh.ellipse, (0, 2*rd, rd)), quad='ps', aff=(-1-1j, 0.4 + 0.4j))
-  sd2 = sg.Segment(50, f_inargs = (sh.ellipse, (0, 2*rd, rd)), quad='ps', aff=(0.5 +1j, 0.4 - 0.4j))
+  sd1 = sg.Segment(int(nsd/2), f_inargs = (sh.ellipse, (0, 2*rd, rd)), quad='ps', aff=(-1-1j, 0.4 + 0.4j))
+  sd2 = sg.Segment(int(nsd/2), f_inargs = (sh.ellipse, (0, 2*rd, rd)), quad='ps', aff=(0.5 +1j, 0.4 - 0.4j))
   
+  # sd1 = sg.Segment(nsd, f_inargs = (sh.circle, (0, rd)), quad='ps', sign=-1)
+  # sd2 = sg.Segment(nsd, f_inargs = (sh.circle, (0, 2*rd)), quad='ps')
   
   bd1 = sg.Boundary([sd1])
   bd2 = sg.Boundary([sd2])
 
+  b = sg.Boundary([sd])
   # bd2 = sg.poly([2, 1 +1.5j, -1 +1j], n=20)
   ld = sg.Layer([bd1, bd2], ly.layerpotSD)
+  # ld = sg.Layer([b], ly.layerpotSD)
   return (ld, so, sb)
 
 def method_gap():
@@ -193,7 +200,8 @@ tc = time.clock() - tc
 print('time wall-clock = ', tt)
 print('time clock = ', tc)
 
-#end = input('Press enter')
+if __name__ == "__main__":
+  end = input('Press enter')
 ############
 def test_NtoD():
   g = ly.phi_n(-8, so.x, so.n)
@@ -308,8 +316,8 @@ class EIT:
     self.delta = delta
     self.theta = theta
     return
-  def domain(self, nsb=0, nso=0, nsd=0):
-    self.ld, self.so, self.sb = x3domain(nsb, nso, nsd)
+  def domain(self, index='one_ellipse', nsb=80, nso=80, nsd=40):
+    self.sb, self.so, self.ld = gm.example(index=index, nsb=nsb, nso=nso, nsd=nsd)
   def meshgrid(self, args=(), args_y=((), (), ())):
     if args == ():
       args = self.meshgrid_args
@@ -322,8 +330,9 @@ class EIT:
     if z == ():
       z = self.z
     plot.plot(self.x, self.y, z, t)
-    self.ld.plot(p=True)
-    self.so.plot()
+    # self.ld.plot(p=True)
+    # self.so.plot()
+    self.plot_domain()
     plt.show(block=False)
   def plot_domain(self):
     self.ld.plot(p=True)

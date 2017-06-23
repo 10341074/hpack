@@ -72,7 +72,7 @@ def get_Basis(n, w=(), t='e'):
   return (b.B, b.Binv)
   
 class Segment:
-  def __init__(self, n, Z_args=((), (), (), ()), f_inargs=((), ()), quad='ps', aff=(0, 1)):
+  def __init__(self, n, Z_args=((), (), (), ()), f_inargs=((), ()), quad='ps', aff=(0, 1), sign=1, more=1):
   # def __init__(self, n, Z_args=((), (), (), ()), f_inargs=((), ()), quad='ps', aff=(0, 1), Z=[], Zp=[], Zpp=[], args=[], f=[], inargs=[], periodic=False):
     # 'p' periodic
     # 'ps' periodic shift
@@ -88,6 +88,10 @@ class Segment:
         self.t = self.t + 1. / 2 / n
     elif quad == 'gp':
       temp_s = np.array([float(k) / n for k in range(n)], float)
+      # no initial point with w=0
+      temp_s = temp_s[1:]
+      n = n - 1
+      #
       self.t = graded.w(2.0 * pi * temp_s) / 2 / pi
       self.a = graded.wp(2.0 * pi * temp_s)
     else:
@@ -98,7 +102,7 @@ class Segment:
 
     self.dx = np.array([Zp(t, *args, aff=aff) for t in self.t], np.cfloat)
     self.speed = np.array(abs(self.dx), float)
-    self.nx = np.array(-1j * self.dx / self.speed, np.cfloat)
+    self.nx = np.array(-1j * self.dx / self.speed, np.cfloat) * sign
 
     self.ddx = np.array([Zpp(t, *args, aff=aff) for t in self.t], np.cfloat)    
     # s.kappa = -real(conj(-1i*dZdt).*s.Zpp(s.t)) ./ s.speed.^3; %curvature
@@ -111,18 +115,20 @@ class Segment:
       self.w = np.array([sp / (n-1) for sp in self.speed], float)
       self.w[0] = self.w[0] * 0.5
       self.w[-1] = self.w[-1] * 0.5
-    K = ly.layerpotSD(s=self)
-    nu, s0 = linf.eigmaxpower(K)
-
-    self.s0 = s0
-    self.S = linf.gramschmidt(s0=s0)
-    self.Sw = linf.gramschmidtw(s=self, s0=s0)
-    self.SL = linf.gramschmidt(s0=self.w)
-    self.B = linf.gramschmidtw(s=self, s0=np.ones(self.n))
-    self.B = linf.gramschmidt(s0=np.ones(self.n))
-
-    self.BX, self.BXinv = get_Basis(self.n)
-    self.BY, self.BYinv = get_Basis(self.n)
+    # miscellaneous
+    if more:
+      K = ly.layerpotSD(s=self)
+      nu, s0 = linf.eigmaxpower(K)
+      
+      self.s0 = s0
+      self.S = linf.gramschmidt(s0=s0)
+      self.Sw = linf.gramschmidtw(s=self, s0=s0)
+      self.SL = linf.gramschmidt(s0=self.w)
+      self.B = linf.gramschmidtw(s=self, s0=np.ones(self.n))
+      self.B = linf.gramschmidt(s0=np.ones(self.n))
+      
+      self.BX, self.BXinv = get_Basis(self.n)
+      self.BY, self.BYinv = get_Basis(self.n)
     
   def plot(self, p=True):
     xx = [x.real for x in self.x]
@@ -134,22 +140,48 @@ class Segment:
     plt.axis('equal')
 
 class Boundary:
-  def __init__(self, pieces=[]):
+  def __init__(self, pieces=[], more=0):
     self.pc = pieces
     self.s = pieces
+    # if reduced == 0:
     self.n = sum([len(pk.x) for pk in self.pc])
     self.x = np.array([z for p in pieces for z in p.x])
     self.nx = np.array([nx for p in pieces for nx in p.nx])
     self.speed = np.array([sp for p in pieces for sp in p.speed])
     self.kappa = np.array([k for p in pieces for k in p.kappa])
     self.w = np.array([w for p in pieces for w in p.w])
+    # else: # no itial position
+    #   self.n = sum([len(pk.x) for pk in self.pc]) - len(pieces)
+    #   self.x = np.array([z for p in pieces for z in p.x])
+    #   self.nx = np.array([nx for p in pieces for nx in p.nx])
+    #   self.speed = np.array([sp for p in pieces for sp in p.speed])
+    #   self.kappa = np.array([k for p in pieces for k in p.kappa])
+    #   self.w = np.array([w for p in pieces for w in p.w])
+
+    # # miscellaneous
+    if more:
+      K = ly.layerpotSD(s=self)
+      nu, s0 = linf.eigmaxpower(K)
+      
+      self.s0 = s0
+      self.S = linf.gramschmidt(s0=s0)
+      self.Sw = linf.gramschmidtw(s=self, s0=s0)
+      self.SL = linf.gramschmidt(s0=self.w)
+      self.B = linf.gramschmidtw(s=self, s0=np.ones(self.n))
+      self.B = linf.gramschmidt(s0=np.ones(self.n))
+      
+      self.BX, self.BXinv = get_Basis(self.n)
+      self.BY, self.BYinv = get_Basis(self.n)
+
+
   def plot(self, p=True):
     for sk in self.s:
       sk.plot(p)
 
 class Pointset:
-  def __init__(self, x=[]):
+  def __init__(self, x=(), nx=()):
     self.x = np.array(x)
+    self.nx = np.array(nx)
 
 class Layer:
   def __init__(self, b=[], exp=[], dns=[]):
@@ -207,8 +239,8 @@ def poly(vx, n):
   s = []
 
   for j in range(nvx):
-    s.append(Segment(n, f_inargs=(sh.line, (vx[j-1], vx[j])), quad='gp'))
-  b = Boundary(s)
+    s.append(Segment(n, f_inargs=(sh.line, (vx[j-1], vx[j])), quad='gp', more=0))
+  b = Boundary(s, more=1)
   return b
   
 

@@ -516,7 +516,7 @@ def ieig(w, v, wind, m0, linreg, isolver, pointstest, LL0, so, theta=0):
       ninv[k] = 1
     else:
       ninv[k] = 0
-    ninv[k] = np.exp(rhs_linreg.slope) - np.exp(linreg.slope)
+    # ninv[k] = np.exp(rhs_linreg.slope) - np.exp(linreg.slope)
   return (ninv, res, nsolgap)
 
 ####################################

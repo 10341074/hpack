@@ -226,3 +226,36 @@ def layerpotSnow(k=0, s=(), t=()):
 
   A = fundsol(r, k)
   return A
+
+def layerpotSD_slf(k=0, s=[], t=[], o=[], slf=0):
+  # slf = 1
+  if t == []:
+    slf = 1
+    t = s
+  M = len(t.x);
+  N = len(s.x);
+  d = np.array([t.x for k in range(N)])
+  d = d.T
+  d = d - np.array([s.x for k in range(M)])
+  r = abs(d)
+  if min(M, N) == 1: # from array to matrix
+    r = np.array([r])
+  if slf:
+    r[np.diag_indices(min(M, N))] = symmflagval
+
+  n = np.array([t.nx for k in range(N)])
+  n = n.T
+  cosphi = - np.real(np.conj(n) * d) / r;
+  
+  A = fundsol_deriv(r, cosphi, k)
+
+  sp = s.speed / 2 / pi
+  if slf:
+    A[np.diag_indices(min(M, N))] = -s.kappa / 4 / pi
+    A = A.dot(np.diag(s.w))
+  else:
+    A = A.dot(np.diag(s.w))
+  if min(M, N) == 1: # from matrix to array
+    A = A[0]
+  
+  return A
