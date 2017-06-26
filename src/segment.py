@@ -110,7 +110,9 @@ class Segment:
     if quad == 'p' or quad == 'ps':
       self.w = np.array([sp / n for sp in self.speed], float)
     elif quad == 'gp':
-      self.w = np.array([sp / n for sp in self.speed], float) * self.a      
+      self.speed = self.speed * self.a
+      self.w = np.array([sp / (n + 1) for sp in self.speed], float)
+      # self.w = np.array([sp / n for sp in self.speed], float) * self.a
     else:
       self.w = np.array([sp / (n-1) for sp in self.speed], float)
       self.w[0] = self.w[0] * 0.5
@@ -147,7 +149,7 @@ class Boundary:
     self.n = sum([len(pk.x) for pk in self.pc])
     self.x = np.array([z for p in pieces for z in p.x])
     self.nx = np.array([nx for p in pieces for nx in p.nx])
-    self.speed = np.array([sp for p in pieces for sp in p.speed])
+    self.speed = np.array([sp for p in pieces for sp in p.speed]) * len(pieces)
     self.kappa = np.array([k for p in pieces for k in p.kappa])
     self.w = np.array([w for p in pieces for w in p.w])
     # else: # no itial position
@@ -165,9 +167,9 @@ class Boundary:
       
       self.s0 = s0
       self.S = linf.gramschmidt(s0=s0)
-      self.Sw = linf.gramschmidtw(s=self, s0=s0)
+      # self.Sw = linf.gramschmidtw(s=self, s0=s0)
       self.SL = linf.gramschmidt(s0=self.w)
-      self.B = linf.gramschmidtw(s=self, s0=np.ones(self.n))
+      # self.B = linf.gramschmidtw(s=self, s0=np.ones(self.n))
       self.B = linf.gramschmidt(s0=np.ones(self.n))
       
       self.BX, self.BXinv = get_Basis(self.n)

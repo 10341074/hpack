@@ -8,8 +8,8 @@ def one_ellipse(nsd):
   return sg.Layer([sg.Boundary([sg.Segment(nsd, f_inargs = (sh.ellipse, (0, 2, 1)), quad='ps') ])])
 def two_ellipse(nsd):
   return sg.Layer([
-      sg.Boundary([sg.Segment(int(nsd/2), f_inargs = (sh.ellipse, (0, 2, 1)), quad='ps', aff=(-1-1j, 0.4 + 0.4j)) ]),
-      sg.Boundary([sg.Segment(int(nsd/2), f_inargs = (sh.ellipse, (0, 2, 1)), quad='ps', aff=(0.5 +1j, 0.4 - 0.4j)) ])
+      sg.Boundary([sg.Segment(nsd, f_inargs = (sh.ellipse, (0, 2, 1)), quad='ps', aff=(-1-1j, 0.4 + 0.4j)) ]), # nsd/2
+      sg.Boundary([sg.Segment(nsd, f_inargs = (sh.ellipse, (0, 2, 1)), quad='ps', aff=(0.5 +1j, 0.4 - 0.4j)) ]) # nsd/2
       ])
 def one_kite(nsd):
   return sg.Layer([sg.Boundary([sg.Segment(nsd, Z_args = (sh.kZ, sh.kZp, sh.kZpp, ()), quad='ps', aff=(0, 0.8 + 0.8j)) ])])
@@ -25,7 +25,7 @@ def sg_one_kite(nsd):
 def sg_one_drop(nsd):
   return sg.Segment(nsd, Z_args = (sh.dZ, sh.dZp, sh.dZpp, ()), quad='gp', aff=(0, 0.8 + 0.8j))
 def sg_one_triangle(nsd):
-  return sg.poly([2, 1 +1.5j, -1 +1j], int(nsd/3))
+  return sg.poly([2, 1 +1.5j, -1 +1j], nsd) # nsd/3
 # def two_ellipse(nsd):
 #   return sg.Layer([
 #       sg.Boundary([sg.Segment(int(nsd/2), f_inargs = (sh.ellipse, (0, 2, 1)), quad='ps', aff=(-1-1j, 0.4 + 0.4j)) ]),

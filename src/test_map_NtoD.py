@@ -51,8 +51,8 @@ def iters(rng, f_ex, s_ex):
   return err
 
 def solve(n):
-  s = gm.sg_one_kite(n)
-  # s = gm.sg_one_triangle(n)
+  # s = gm.sg_one_kite(n)
+  s = gm.sg_one_triangle(n)
   # L0 = ipb.computeL0(so = s, T = np.eye(s.n))
   v_p = ly.scalar(v_p_ex(s.x), s.nx)
   v = ipb.computeL0(so = s, T = v_p)
@@ -60,7 +60,8 @@ def solve(n):
   return v, s
 
 def exact(n):
-  s_ex = gm.sg_one_kite(n)
+  # s_ex = gm.sg_one_kite(n)
+  s_ex = gm.sg_one_triangle(n)
   f_ex = v_ex(s_ex.x)
   f_ex = f_ex - sum(f_ex * s_ex.w) / sum(s_ex.w)
   return f_ex, s_ex
