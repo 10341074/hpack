@@ -86,7 +86,7 @@ class Segment:
       self.t = np.array([float(k) / n for k in range(n)], float)
       if quad == 'ps':
         self.t = self.t + 1. / 2 / n
-    elif quad == 'gp':
+    elif quad == 'gp' or quad == 'g':
       temp_s = np.array([float(k) / n for k in range(n)], float)
       # no initial point with w=0
       temp_s = temp_s[1:]
@@ -109,9 +109,11 @@ class Segment:
     self.kappa = -np.real(np.conj(-1j * self.dx) * self.ddx) / (self.speed**3) # signed curvature
     if quad == 'p' or quad == 'ps':
       self.w = np.array([sp / n for sp in self.speed], float)
-    elif quad == 'gp':
+    elif quad == 'gp' or quad=='g':
       self.speed = self.speed * self.a
-      self.w = np.array([sp / (n + 1) for sp in self.speed], float)
+      self.w = np.array([sp / (n) for sp in self.speed], float)
+      if quad == 'g':
+        self.w = np.array([sp / (n+1) for sp in self.speed], float)        
       # self.w = np.array([sp / n for sp in self.speed], float) * self.a
     else:
       self.w = np.array([sp / (n-1) for sp in self.speed], float)
@@ -241,7 +243,7 @@ def poly(vx, n):
   s = []
 
   for j in range(nvx):
-    s.append(Segment(n, f_inargs=(sh.line, (vx[j-1], vx[j])), quad='gp', more=0))
+    s.append(Segment(n, f_inargs=(sh.line, (vx[j-1], vx[j])), quad='g', more=0))
   b = Boundary(s, more=1)
   return b
   

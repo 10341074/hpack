@@ -69,7 +69,7 @@ def exact(n):
 
 def total(n_ex):
   f_ex, s_ex = exact(n_ex)
-  err = iters(range(10, n_ex, 10), f_ex, s_ex)
+  err = iters(range(10 + (n_ex % 2), n_ex, 10), f_ex, s_ex)
   plt.plot(err, '+-')
   plt.show(block=False)
   return err
