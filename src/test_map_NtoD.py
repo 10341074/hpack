@@ -69,7 +69,71 @@ def exact(n):
 
 def total(n_ex):
   f_ex, s_ex = exact(n_ex)
-  err = iters(range(10 + (n_ex % 2), n_ex, 10), f_ex, s_ex)
+  rng = range(10 + (n_ex % 2), n_ex, 10)
+  err = iters(rng, f_ex, s_ex)
   plt.plot(err, '+-')
   plt.show(block=False)
-  return err
+  return rng, err
+
+def test_injectivity_N0(so): return ipb.computeL0(so = so, T = np.zeros(so.n))
+def test_injectivity_ND(so): return ipb.computeL(so = so, T = np.zeros(so.n))
+def test_injectivity(so, N0=True, ND=False):
+  if N0: out(test_injectivity_N0(so), s = 'N0')
+  if ND: out(test_injectivity_ND(so), s = 'ND')
+  return
+def out(v, s):
+  e = max(abs(v))
+  toll = 1e-10
+  out = 'OK' if e < toll else 'KO'
+  print(out, ': test injectivity of ', s, ' with max abs e = ', e, ' < ', toll)
+  return
+
+
+def submean(v, w, strname, sub=1):
+  print(strname, '\t old mean = ', sum(v * w))
+  if sub:
+    v = v - sum(v*w)/sum(w)
+    print('sub')
+  return v
+
+def test_N0(so):
+  v_p = ly.scalar(v_p_ex(so.x), so.nx)
+  f_ex = v_ex(so.x)
+  f_ex = submean(f_ex, so.w, 'Exact')
+  e = []
+  # direct precond
+  v__dp = ipb.computeL0(so = so, T = v_p)
+  v__dp = submean(v__dp, so.w, 'Direct Precon')
+  e = np.concatenate(( e, [test_N0_out(f_ex - v__dp)] ))
+  # direct
+  v__d = ly.layerpotS(s=so).dot(dpb.mapNtoD00(so, v_p))
+  v__d = submean(v__d, so.w, 'Direct')
+  e = np.concatenate(( e, [test_N0_out(f_ex - v__d)] ))
+  # clin precond
+  v__clp = ipb.computeL0(so = so, T = np.eye(so.n)).dot(v_p)
+  v__clp = submean(v__clp, so.w, 'Composite Linear Precon')
+  e = np.concatenate(( e, [test_N0_out(f_ex - v__clp)] ))
+  # clin
+  v__cl = ly.layerpotS(s=so).dot(dpb.mapNtoD00(so, np.eye(so.n))).dot(v_p)
+  v__cl = submean(v__cl, so.w, 'Composite Linear')
+  e = np.concatenate(( e, [test_N0_out(f_ex - v__cl)] ))
+  return e, f_ex, v__dp, v__d, v__clp, v__cl
+
+def test_N0_out(v, strname=()):
+  e = max(abs(v))
+  toll = 1e-10
+  out = 'OK' if e < toll else 'KO'
+  print(out, ': test error of ', strname, ' \t with max abs e = ', e, ' < ', toll)
+  return e
+
+def test_N0_total(n_ex):
+  # f_ex, s_ex = exact(n_ex)
+  rng = range(10 + (n_ex % 2), n_ex, 10)
+  err = [np.zeros(4)]
+  for n in rng:
+    s = gm.sg_one_kite(n)
+    err = np.concatenate(( err, [np.array(test_N0(s)[0])] ))
+  for k in range(4):
+    plt.plot(err[:, k], '+-')
+  plt.show(block=False)
+  return rng, err

@@ -11,12 +11,6 @@ def two_ellipse(nsd):
       sg.Boundary([sg.Segment(nsd, f_inargs = (sh.ellipse, (0, 2, 1)), quad='ps', aff=(-1-1j, 0.4 + 0.4j)) ]), # nsd/2
       sg.Boundary([sg.Segment(nsd, f_inargs = (sh.ellipse, (0, 2, 1)), quad='ps', aff=(0.5 +1j, 0.4 - 0.4j)) ]) # nsd/2
       ])
-def three_ellipse(nsd):
-  return sg.Layer([
-      sg.Boundary([sg.Segment(nsd, f_inargs = (sh.ellipse, (0, 2, 1)), quad='ps', aff=(-1+0.2j, 0.3*np.exp(1j * np.pi/6))) ]),
-      sg.Boundary([sg.Segment(nsd, f_inargs = (sh.ellipse, (0, 2, 1)), quad='ps', aff=(0.5 +1j, 0.2*np.exp(1j * np.pi/4))) ]),
-      sg.Boundary([sg.Segment(nsd, f_inargs = (sh.ellipse, (0, 2, 1)), quad='ps', aff=(0.5 -1j, 0.4*np.exp(1j * np.pi/2))) ])
-      ])
 def one_kite(nsd):
   return sg.Layer([sg.Boundary([sg.Segment(nsd, Z_args = (sh.kZ, sh.kZp, sh.kZpp, ()), quad='ps', aff=(0, 0.8 + 0.8j)) ])])
 def one_drop(nsd):

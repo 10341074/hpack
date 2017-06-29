@@ -175,8 +175,7 @@ def method_F():
   isolver_NtoD = ipb.solver_init(LLdiff, a, delta, reg, regmet, solver, RHS_fcom=RHS_fcom, RHS_args=RHS_args, BX=so.BX, BY=so.BY)
   
   x, y, pp = ipb.meshgrid((-2, 2, 40))
-
-  w, v, wind, m0, linreg = ipb.eigselect(LLdiff, m0=40)
+  w, v, wind, m0, linreg = ipb. eigselect(LLdiff, m0=40)
   
   (ninv, res, nsolgap) = ipb.ieig(w, v, wind, m0, linreg, isolver_NtoD, pp, LL0, so, theta)
  
@@ -325,8 +324,11 @@ class EIT:
     else:
       self.meshgrid_args = args
     self.x, self.y, self.pp = ipb.meshgrid(args, args_y)
+    # if self.p == ():
+    self.p = self.pp
     self.import_p()
   def import_p(self, s=()):
+    # if self.p == ():
     self.p = self.pp
     if s == ():
       s = self.so
@@ -375,8 +377,6 @@ class EIT:
     
     RHS_args = {'L0' : self.L0, 'L0B' : self.L0B, 's' : self.so, 'z0' : (), 'theta' : self.theta} 
     self.isolver = ipb.solver_init(self.K, self.alpha, self.delta, reg, regmet, solver, RHS_fcom=RHS_fcom, RHS_args=RHS_args, BX=self.so.BX, BY=self.so.BY)
-    self.isolver.alpha_orig = self.isolver.alpha
-    self.isolver.alpha_l = 1e_16
   def ipb(self):
     ipb.iallsols(self.isolver, self.p, self.so)  
     # ipb.iallsols_opt(isolver_NtoD, pp, so, it_alpha=2)
@@ -415,17 +415,6 @@ class EIT:
   def basis_XY(self, t='e'):
     self.basis_X(t)
     self.basis_Y(t)
-  def fact_solver(self):
-    self.solver()
-    self.LLdiff = ipb.computeLLdiff(self.ld, self.so, T=np.eye(self.so.n), c=c)
-    self.LLBdiff = ipb.computeLLBdiff(self.ld, self.so, T=self.so.B[:, 1:], c=c)
-    RHS_args = {'L0' : self.L0, 'L0B' : self.L0B, 's' : self.so, 'z0' : (), 'theta' : self.theta}
-    RHS_fcom = ipb.NtoD_computeRHS
-    self.isolver = ipb.solver_init(self.LLdiff, self.alpha, self.delta, reg, regmet, solver, RHS_fcom=RHS_fcom, RHS_args=RHS_args, BX=self.so.BX, BY=self.so.BY)
-  def fact_ieig(self):
-    w, v, wind, m0, linreg = ipb.eigselect(self.LLdiff, m0=40)  
-    self.z, self.res, nsolgap = ipb.ieig(w, v, wind, m0, linreg, self.isolver, self.pp, self.LL0, self.so, self.theta)
-
 def alpha_fixed_ratio(k=0, s=()):
   zeta = s.isolver.save_zeta[:, :, k]
   zeta = zeta.T

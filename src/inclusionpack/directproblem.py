@@ -1,11 +1,13 @@
+#!../../venv/bin/python
 import matplotlib.pyplot as plt
 import numpy as np
+
+from scipy.linalg import solve
 import scipy.linalg as linalg
 import numpy.linalg
 import scipy.sparse.linalg
 
 from __types__ import *
-
 import layerpot as ly
 import segment as sg
 import plot
@@ -280,24 +282,4 @@ def mapNtoD00(l, g):
     print('mapNtoD condition number= ', numpy.linalg.cond(np.array(Kp, float)))
     print('mapNtoD determninant= ', numpy.linalg.det(np.array(Kp, float)))
   phi = linalg.solve(Kp, g)
-  return phi
-
-def mapNtoDD0(lo, ld, g, c, s0=()):
-  no = lo.n
-  nd = ld.n
-  Kpd = ly.layerpotSD(s=ld)
-  Kpo = ly.layerpotSD(s=lo)
-  Kpd[np.diag_indices(nd)] = Kpd[np.diag_indices(nd)] + 0.5 * c
-  Kpo[np.diag_indices(no)] = Kpo[np.diag_indices(no)] + 0.5
-  Kd2o = ly.layerpotSD(s=ld, t=lo)
-  Ko2d = ly.layerpotSD(s=lo, t=ld)
-
-  row1 = np.concatenate((Kpo.T, Kd2o.T)).T
-  row2 = np.concatenate((Ko2d.T, Kpd.T)).T
-  Ks = np.concatenate((row1, row2))
-
-  if verbose:
-    print('mapNtoD condition number= ', numpy.linalg.cond(np.array(Ks, float)))
-    print('mapNtoD determninant= ', numpy.linalg.det(np.array(Ks, float)))
-  phi = linalg.solve(Ks, g)
   return phi

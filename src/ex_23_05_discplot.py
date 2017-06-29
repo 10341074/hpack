@@ -52,8 +52,8 @@ def NtoD_computeRHS(args, p, rhs=()):
   return rhs - dirh
 
 p = m.EIT()
-p.domain()
-p.meshgrid((-4, 4, 30))
+p.domain('two_ellipse')
+p.meshgrid((-3, 3, 40))
 # p.so.BX = linf.base_mean(p.so.BX, p.so.w)
 p.solver()
 q = [1.]
@@ -74,7 +74,7 @@ alpha = np.concatenate((alpha, [1e-15*10**k for k in range(8)]))
 
 #
 p.solver()
-it_alpha = 15
+it_alpha = 8
 p.ipb_opt(it_alpha=it_alpha)
 p.alpha_fixed_ratio(0)
 p.plot()

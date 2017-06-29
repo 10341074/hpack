@@ -371,7 +371,6 @@ def func_alpha_bis(alpha, alpha_l, alpha_r, disc):
   return (alpha, alpha_l, alpha_r)
 
 def iallsols(isolver, pointstest, so):
-  # compute all sols, named zeta, of inverse problem: (N_reg) zeta = rhs
   w = so.w
   isolver.save_zeta = np.empty((len(pointstest.x), isolver.A.shape[1]), float)
   isolver.save_sol = np.empty((len(pointstest.x), so.n), float)
@@ -383,19 +382,19 @@ def iallsols(isolver, pointstest, so):
 
   isolver.save_rhs = np.empty((len(pointstest.x), len(RHS)), float)
   for k in range(len(pointstest.x)):
-    if pointstest.flag_inside_s[k] == 1:
-      isolver.RHS_args['z0'] = pointstest.x[k]
-      RHS = isolver.RHS_fcom(isolver.RHS_args)
-      RHSr = isolver.RHS_f(isolver, RHS=RHS)
-      zeta = isolver.solver_f(isolver.solver_a, RHSr)
-      isolver.save_zeta[k, :] = zeta
-      isolver.save_rhs[k] = RHS
-      zeta = isolver.BX.dot(zeta)
-      zeta = zeta - sum(zeta * w) / sum(w)
-      isolver.save_sol[k, :] = zeta
-      # zeta = ly.layerpotSD(s=sb, t=so).dot(zeta)
-      # time.sleep(0.0005)
-      isolver.save_ratio[k] = np.sqrt(sum(RHS**2 * w)) / np.sqrt(sum(zeta**2 * w))
+    # if pointstest.flag_inside_s[k] == 1:
+    isolver.RHS_args['z0'] = pointstest.x[k]
+    RHS = isolver.RHS_fcom(isolver.RHS_args)
+    RHSr = isolver.RHS_f(isolver, RHS=RHS)
+    zeta = isolver.solver_f(isolver.solver_a, RHSr)
+    isolver.save_zeta[k, :] = zeta
+    isolver.save_rhs[k] = RHS
+    zeta = isolver.BX.dot(zeta)
+    zeta = zeta - sum(zeta * w) / sum(w)
+    isolver.save_sol[k, :] = zeta
+    # zeta = ly.layerpotSD(s=sb, t=so).dot(zeta)
+    time.sleep(0.0005)
+    isolver.save_ratio[k] = np.sqrt(sum(RHS**2 * w)) / np.sqrt(sum(zeta**2 * w))
   return
 def iallsols_one(isolver, w, k, k_alpha):
   # 1st linear sistem
@@ -444,6 +443,7 @@ def iallsols_one(isolver, w, k, k_alpha):
   return
 def iallsols_opt(isolver, pointstest, so, it_alpha=2):
   w = so.w
+
   # ninv = np.empty(len(pointstest.x), float)
   isolver.save_zeta = np.empty((len(pointstest.x), isolver.A.shape[1], it_alpha), float)
   isolver.save_sol = np.empty((len(pointstest.x), so.n, it_alpha), float)
@@ -457,44 +457,16 @@ def iallsols_opt(isolver, pointstest, so, it_alpha=2):
   RHS = isolver.RHS_fcom(isolver.RHS_args)
 
   isolver.save_rhs = np.empty((len(pointstest.x), len(RHS), it_alpha), float)
-  # alpha_orig = isolver.alpha
+  alpha_orig = isolver.alpha
   for k in range(len(pointstest.x)):
-    if pointstest.flag_inside_s[k] == 1:
-      isolver.RHS_args['z0'] = pointstest.x[k]
-      isolver.alpha = isolver.alpha_orig
-      isolver.alpha_l = isolver.alpha_l
-      isolver.alpha_r = alpha_orig
-      for k_alpha in range(it_alpha):
-        iallsols_one(isolver, w, k, k_alpha)
-        # time.sleep(0.005)
+    isolver.RHS_args['z0'] = pointstest.x[k]
+    isolver.alpha = alpha_orig
+    isolver.alpha_l = 1e-16
+    isolver.alpha_r = alpha_orig
+    for k_alpha in range(it_alpha):
+      iallsols_one(isolver, w, k, k_alpha)
+      # time.sleep(0.005)
   return
-def iallsols_opt_append(isolver, pointstest, so, it_alpha=2, it_old=0):
-  w = so.w
-  # ninv = np.empty(len(pointstest.x), float)
-  isolver.save_zeta = np.append(isolver.save_zeta, np.empty((len(pointstest.x), isolver.A.shape[1], it_alpha), float))
-  isolver.save_sol = np.append(isolver.save_sol, np.empty((len(pointstest.x), so.n, it_alpha), float))
-  isolver.save_alpha = np.append(isolver.save_alpha, np.empty((len(pointstest.x), it_alpha), float))
-  isolver.save_disc = np.append(isolver.save_disc, np.empty((len(pointstest.x), it_alpha), float))
-  isolver.save_disc_p = np.append(isolver.save_disc_p, np.empty((len(pointstest.x), it_alpha), float))
-  isolver.save_ratio = np.append(isolver.save_ratio, np.empty((len(pointstest.x), it_alpha), float))
-
-  # test one point
-  isolver.RHS_args['z0'] = pointstest.x[0]
-  RHS = isolver.RHS_fcom(isolver.RHS_args)
-
-  isolver.save_rhs = np.append(isolver.save_rhs, np.empty((len(pointstest.x), len(RHS), it_alpha), float))
-  # alpha_orig = isolver.alpha
-  for k in range(len(pointstest.x)):
-    if pointstest.flag_inside_s[k] == 1:
-      isolver.RHS_args['z0'] = pointstest.x[k]
-      isolver.alpha = isolver.alpha_orig
-      isolver.alpha_l = isolver.alpha_l
-      isolver.alpha_r = alpha_orig
-      for k_alpha in range(it_alpha):
-        iallsols_one(isolver, w, k, k_alpha)
-        # time.sleep(0.005)
-  return
-
 #####################################################
 def eigselect(A, m0 = ()):
   As = 0.5 * (A + A.T)
@@ -577,4 +549,3 @@ def test_one(isolver, pointstest, so, alpha):
       iallsols_one(isolver, w, k, k_alpha)
       time.sleep(0.005)
   return
-# print(np.finfo(np.float256).eps)
