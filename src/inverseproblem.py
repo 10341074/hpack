@@ -441,6 +441,8 @@ def iallsols_one(isolver, w, k, k_alpha):
   # update alpha
   # isolver.alpha = isolver.alpha - disc / disc_p
   isolver.alpha, isolver.alpha_l, isolver.alpha_r = func_alpha_bis(isolver.alpha, isolver.alpha_l, isolver.alpha_r, disc)
+  isolver.save_alpha_l[k] = isolver.alpha_l # to be moved out of loop
+  isolver.save_alpha_r[k] = isolver.alpha_r # to be moved out of loop
   return
 def iallsols_opt(isolver, pointstest, so, it_alpha=2):
   w = so.w
@@ -451,6 +453,8 @@ def iallsols_opt(isolver, pointstest, so, it_alpha=2):
   isolver.save_disc = np.empty((len(pointstest.x), it_alpha), float)
   isolver.save_disc_p = np.empty((len(pointstest.x), it_alpha), float)
   isolver.save_ratio = np.empty((len(pointstest.x), it_alpha), float)
+  isolver.save_alpha_l = np.empty((len(pointstest.x)), float)
+  isolver.save_alpha_r = np.empty((len(pointstest.x)), float)
 
   # test one point
   isolver.RHS_args['z0'] = pointstest.x[0]
@@ -463,34 +467,39 @@ def iallsols_opt(isolver, pointstest, so, it_alpha=2):
       isolver.RHS_args['z0'] = pointstest.x[k]
       isolver.alpha = isolver.alpha_orig
       isolver.alpha_l = isolver.alpha_l
-      isolver.alpha_r = alpha_orig
+      isolver.alpha_r = isolver.alpha_orig
       for k_alpha in range(it_alpha):
         iallsols_one(isolver, w, k, k_alpha)
         # time.sleep(0.005)
   return
-def iallsols_opt_append(isolver, pointstest, so, it_alpha=2, it_old=0):
+def iallsols_opt_append(isolver, pointstest, so, it_alpha=2):
   w = so.w
+  it_old = isolver.save_zeta.shape[2]
   # ninv = np.empty(len(pointstest.x), float)
-  isolver.save_zeta = np.append(isolver.save_zeta, np.empty((len(pointstest.x), isolver.A.shape[1], it_alpha), float))
-  isolver.save_sol = np.append(isolver.save_sol, np.empty((len(pointstest.x), so.n, it_alpha), float))
-  isolver.save_alpha = np.append(isolver.save_alpha, np.empty((len(pointstest.x), it_alpha), float))
-  isolver.save_disc = np.append(isolver.save_disc, np.empty((len(pointstest.x), it_alpha), float))
-  isolver.save_disc_p = np.append(isolver.save_disc_p, np.empty((len(pointstest.x), it_alpha), float))
-  isolver.save_ratio = np.append(isolver.save_ratio, np.empty((len(pointstest.x), it_alpha), float))
+  isolver.save_zeta = np.append(isolver.save_zeta, np.empty((len(pointstest.x), isolver.A.shape[1], it_alpha), float), axis=2)
+  isolver.save_sol = np.append(isolver.save_sol, np.empty((len(pointstest.x), so.n, it_alpha), float), axis=2)
+  isolver.save_alpha = np.append(isolver.save_alpha, np.empty((len(pointstest.x), it_alpha), float), axis=1)
+  isolver.save_disc = np.append(isolver.save_disc, np.empty((len(pointstest.x), it_alpha), float), axis=1)
+  isolver.save_disc_p = np.append(isolver.save_disc_p, np.empty((len(pointstest.x), it_alpha), float), axis=1)
+  isolver.save_ratio = np.append(isolver.save_ratio, np.empty((len(pointstest.x), it_alpha), float), axis=1)
+  # isolver.save_alpha_l = np.append(isolver.save_alpha, np.empty((len(pointstest.x)), float), axis=1)
+  # isolver.save_alpha_r = np.append(isolver.save_alpha, np.empty((len(pointstest.x)), float), axis=1)
 
+  
   # test one point
   isolver.RHS_args['z0'] = pointstest.x[0]
   RHS = isolver.RHS_fcom(isolver.RHS_args)
 
-  isolver.save_rhs = np.append(isolver.save_rhs, np.empty((len(pointstest.x), len(RHS), it_alpha), float))
+  isolver.save_rhs = np.append(isolver.save_rhs, np.empty((len(pointstest.x), len(RHS), it_alpha), float), axis=2)
   # alpha_orig = isolver.alpha
   for k in range(len(pointstest.x)):
     if pointstest.flag_inside_s[k] == 1:
       isolver.RHS_args['z0'] = pointstest.x[k]
-      isolver.alpha = isolver.alpha_orig
-      isolver.alpha_l = isolver.alpha_l
-      isolver.alpha_r = alpha_orig
-      for k_alpha in range(it_alpha):
+      isolver.alpha = isolver.save_alpha[k, it_old - 1]
+      print(isolver.alpha)
+      isolver.alpha_l = isolver.save_alpha_l[k]
+      isolver.alpha_r = isolver.save_alpha_r[k]
+      for k_alpha in range(it_old, it_old + it_alpha):
         iallsols_one(isolver, w, k, k_alpha)
         # time.sleep(0.005)
   return

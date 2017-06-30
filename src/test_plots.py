@@ -13,12 +13,20 @@ import inverseproblem as ipb
 
 def plot_loglog(x=(), y=()):
   if x==(): x=range(1, len(y) + 1)
-  plt.plot(np.log(x), np.log(y), 'k+-')
+  fig = plt.figure()
+  plt.plot(np.log(x), np.log(y), 'k+-', lw=1, ms=4)
   plt.axis('equal')
   plt.axis('square')
-  plt.title('Ciao')
   plt.show(block=False)
-  return
+  return fig
+def plot_loglogscale(x=(), y=()):
+  fig = plt.figure()
+  plt.plot(x, y, 'k+-', lw=1, ms=4, ls=':')
+  ax = fig.add_subplot(111)
+  ax.set_yscale('log')
+  ax.set_xscale('log')
+  plt.show(block=False)
+  return fig
 
 def grid(x, y):
   for xk in x:

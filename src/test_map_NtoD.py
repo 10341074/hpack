@@ -1,6 +1,7 @@
 from src import *
 import numpy as np
 import scipy.linalg as linalg
+import sys
 
 import layerpot as ly
 import shapes as sh
@@ -10,6 +11,7 @@ import geometries as gm
 import mainpb as m
 
 import inverseproblem as ipb
+import test_plots
 
 def v_ex(z):
   return z.real**3 - 3 * z.real * z.imag**2
@@ -33,10 +35,10 @@ def elem_deg1(s, t):
               + truncate_up(truncate(e0(t.t + 1, st_ext[j-1], st_ext[j])) + truncate(e1(t.t + 1, st_ext[j], st_ext[j+1])))
   return A  
 
-def iters(rng, f_ex, s_ex):
+def iters(rng, f_ex, s_ex, gms):
   err = []
   for n in rng:
-    f, s = solve(n)
+    f, s = solve(n, gms)
     # A = elem_deg1(s, s_ex)
     # new_err = linalg.norm((A.dot(f) - f_ex) * s_ex.w)
     f_ex_n = v_ex(s.x)
@@ -50,27 +52,27 @@ def iters(rng, f_ex, s_ex):
     # end = input('Press')
   return err
 
-def solve(n):
+def solve(n, gms):
   # s = gm.sg_one_kite(n)
-  s = gm.sg_one_triangle(n)
+  s = gms(n)
   # L0 = ipb.computeL0(so = s, T = np.eye(s.n))
   v_p = ly.scalar(v_p_ex(s.x), s.nx)
   v = ipb.computeL0(so = s, T = v_p)
   # return L0.dot(v_p)
   return v, s
 
-def exact(n):
+def exact(n, gms):
   # s_ex = gm.sg_one_kite(n)
-  s_ex = gm.sg_one_triangle(n)
+  s_ex = gms(n)
   f_ex = v_ex(s_ex.x)
   f_ex = f_ex - sum(f_ex * s_ex.w) / sum(s_ex.w)
   return f_ex, s_ex
   
 
-def total(n_ex):
-  f_ex, s_ex = exact(n_ex)
+def total(n_ex, gms=gm.sg_one_triangle):
+  f_ex, s_ex = exact(n_ex, gms)
   rng = range(10 + (n_ex % 2), n_ex, 10)
-  err = iters(rng, f_ex, s_ex)
+  err = iters(rng, f_ex, s_ex, gms)
   plt.plot(err, '+-')
   plt.show(block=False)
   return rng, err
@@ -137,3 +139,35 @@ def test_N0_total(n_ex):
     plt.plot(err[:, k], '+-')
   plt.show(block=False)
   return rng, err
+
+
+def thesis(n_ex=101):
+  rng, err = total(int(n_ex / 2) * 2 + 1, gm.sg_one_triangle)
+  fig = test_plots.plot_loglogscale(rng, err)
+  ax = fig.add_subplot(111)
+  pnt = ((rng[-1]), (err[-1]))
+  # plt.plot(pnt[0], pnt[1],'kp')
+  ax.annotate('error = %s' % np.float32(err[-1]), xy=pnt , textcoords='data')
+  plt.xlabel('log(n)')
+  plt.ylabel('log(err)')
+  plt.title('Triangle')
+  plt.show(block=False)
+  plt.savefig('runs/fig-thesis/convergence_laplace_one_triangle.eps', bbox_inches='tight')
+  ##############################
+  rng, err = total(int(n_ex / 2) * 2, gm.sg_one_ellipse)
+  fig = test_plots.plot_loglogscale(rng, err)
+  ax = fig.add_subplot(111)
+  pnt = ((rng[-1]), (err[-1]))
+  # plt.plot(pnt[0], pnt[1],'kp')
+  ax.annotate('error = %s' % np.float32(err[-1]), xy=pnt , textcoords='data')
+  plt.xlabel('log(n)')
+  plt.ylabel('log(err)')
+  plt.title('Ellipse')
+  plt.show(block=False)
+  plt.savefig('runs/fig-thesis/convergence_laplace_one_ellipse.eps', bbox_inches='tight')
+
+  return
+
+if __name__ == '__main__':
+  n_ex = sys.argv[1]
+  thesis(int(n_ex))

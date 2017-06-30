@@ -272,7 +272,7 @@ def mapNtoDdiff(lo, ld, g, c, s0=()):
     print('Error dimensions for gs1 in mapNtoD')
   return np.concatenate((S.dot(phi[0:no]), phi[no::]))
 
-def mapNtoD00(l, g):
+def mapNtoD00(l, g, s0):
   n = l.n
   Kp = ly.layerpotSD(s=l)
   Kp[np.diag_indices(n)] = Kp[np.diag_indices(n)] + 0.5
@@ -282,7 +282,7 @@ def mapNtoD00(l, g):
   phi = linalg.solve(Kp, g)
   return phi
 
-def mapNtoDD0(lo, ld, g, c, s0=()):
+def mapNtoDD0(lo, ld, g, c, s0):
   no = lo.n
   nd = ld.n
   Kpd = ly.layerpotSD(s=ld)

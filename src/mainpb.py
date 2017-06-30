@@ -376,7 +376,7 @@ class EIT:
     RHS_args = {'L0' : self.L0, 'L0B' : self.L0B, 's' : self.so, 'z0' : (), 'theta' : self.theta} 
     self.isolver = ipb.solver_init(self.K, self.alpha, self.delta, reg, regmet, solver, RHS_fcom=RHS_fcom, RHS_args=RHS_args, BX=self.so.BX, BY=self.so.BY)
     self.isolver.alpha_orig = self.isolver.alpha
-    self.isolver.alpha_l = 1e_16
+    self.isolver.alpha_l = 1e-16
   def ipb(self):
     ipb.iallsols(self.isolver, self.p, self.so)  
     # ipb.iallsols_opt(isolver_NtoD, pp, so, it_alpha=2)
@@ -396,6 +396,10 @@ class EIT:
     # ipb.iallsols(self.isolver, self.p, self.so)  
     # alpha = np.array([1e-16 + 1e-16 * k for k in range(10)])    
     # ipb.test_one(isolver_NtoD, pp, so, 10, 1e-16, 1e-16) 
+    self.z = self.isolver.save_ratio[:, 0]
+  def ipb_opt_append(self, it_alpha = 2):
+    print('alpha_orig', self.isolver.alpha)
+    ipb.iallsols_opt_append(self.isolver, self.p, self.so, it_alpha) 
     self.z = self.isolver.save_ratio[:, 0]
   def alpha_fixed_ratio(self, k=0):
     zeta = self.isolver.save_zeta[:, :, k]
