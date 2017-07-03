@@ -316,6 +316,8 @@ class EIT:
     self.alpha = alpha
     self.delta = delta
     self.theta = theta
+    self.levelnoise = 0.01
+    self.m0 = 40
     return
   def domain(self, index='one_ellipse', nsb=80, nso=80, nsd=40):
     self.sb, self.so, self.ld = gm.example(index=index, nsb=nsb, nso=nso, nsd=nsd)
@@ -373,7 +375,7 @@ class EIT:
     L0 = ipb.computeL0(self.so, BXr)
     L = ipb.computeL(self.ld, self.so, BXr, c)
     
-    RHS_args = {'L0' : self.L0, 'L0B' : self.L0B, 's' : self.so, 'z0' : (), 'theta' : self.theta} 
+    RHS_args = {'L0' : self.L0, 'L0B' : self.L0B, 's' : self.so, 'z0' : (), 'theta' : self.theta, 'levelnoise' : self.levelnoise} 
     self.isolver = ipb.solver_init(self.K, self.alpha, self.delta, reg, regmet, solver, RHS_fcom=RHS_fcom, RHS_args=RHS_args, BX=self.so.BX, BY=self.so.BY)
     self.isolver.alpha_orig = self.isolver.alpha
     self.isolver.alpha_l = 1e-16
@@ -423,11 +425,11 @@ class EIT:
     self.solver()
     self.LLdiff = ipb.computeLLdiff(self.ld, self.so, T=np.eye(self.so.n), c=c)
     self.LLBdiff = ipb.computeLLBdiff(self.ld, self.so, T=self.so.B[:, 1:], c=c)
-    RHS_args = {'L0' : self.L0, 'L0B' : self.L0B, 's' : self.so, 'z0' : (), 'theta' : self.theta}
+    RHS_args = {'L0' : self.L0, 'L0B' : self.L0B, 's' : self.so, 'z0' : (), 'theta' : self.theta, 'levelnoise' : self.levelnoise}
     RHS_fcom = ipb.NtoD_computeRHS
     self.isolver = ipb.solver_init(self.LLdiff, self.alpha, self.delta, reg, regmet, solver, RHS_fcom=RHS_fcom, RHS_args=RHS_args, BX=self.so.BX, BY=self.so.BY)
   def fact_ieig(self):
-    w, v, wind, m0, linreg = ipb.eigselect(self.LLdiff, m0=40)  
+    w, v, wind, m0, linreg = ipb.eigselect(self.LLdiff, m0=self.m0)  
     self.z, self.res, nsolgap = ipb.ieig(w, v, wind, m0, linreg, self.isolver, self.pp, self.LL0, self.so, self.theta)
 
 def alpha_fixed_ratio(k=0, s=()):

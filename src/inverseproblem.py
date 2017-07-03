@@ -6,6 +6,7 @@ from numpy.linalg import cond
 import scipy.linalg as linalg
 import numpy.linalg
 import scipy.stats
+import numpy.random
 import time
 
 from __types__ import *
@@ -334,7 +335,12 @@ def NtoD_computeRHS(args, rhs=()):
   rhs = ly.scalar(a, ly.phi_p(z0, s.x))
   m = sum(rhs * s.w) / sum(s.w)
   rhs = rhs - m
-  return rhs - dirh
+  rhs = rhs - dirh
+  levelnoise = args['levelnoise']
+  modulnoise = max(abs(rhs)) * levelnoise
+  noise = modulnoise * numpy.random.normal(0, 1, rhs.size)
+  rhs = rhs + noise
+  return rhs
 
 def NtoD_computeRHSB(args, rhs=()):
   L0, L0B, s, z0, theta = args['L0'], args['L0B'], args['s'], args['z0'], args['theta']

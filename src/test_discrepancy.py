@@ -16,12 +16,12 @@ it_alpha = 15
 p.ipb_opt(it_alpha=it_alpha)
 p.alpha_fixed_ratio(0)
 p.plot()
-# plt.savefig('prova3_0.svg')
+plt.savefig('prova3_0.svg')
 p.alpha_fixed_ratio(-1)
 p.plot()
-# plt.savefig('prova3_end.svg')
+plt.savefig('prova3_end.svg')
 
-# dill.dump_session('dill3.pkl')
+dill.dump_session('dill3.pkl')
 # dill.load_session('dill.pkl')
 
 end = input('Press enter')
