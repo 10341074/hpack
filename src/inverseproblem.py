@@ -336,9 +336,9 @@ def NtoD_computeRHS(args, rhs=()):
   m = sum(rhs * s.w) / sum(s.w)
   rhs = rhs - m
   rhs = rhs - dirh
-  levelnoise = args['levelnoise']
-  modulnoise = max(abs(rhs)) * levelnoise
-  noise = modulnoise * numpy.random.normal(0, 1, rhs.size)
+  noiselevel = args['noiselevel']
+  noisemodul = max(abs(rhs)) * noiselevel
+  noise = noisemodul * numpy.random.normal(0, 1, rhs.size)
   rhs = rhs + noise
   return rhs
 

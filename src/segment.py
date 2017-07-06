@@ -145,13 +145,13 @@ class Segment:
       f = abs(x - self.params[0]) ** 2 -  self.params[1] ** 2
       out = 1 if f < 0 else 0
     return out
-  def plot(self, p=True):
+  def plot(self, p=True, *args, **kargs):
     xx = [x.real for x in self.x]
     yy = [x.imag for x in self.x]
     if p:
       xx.append(xx[0])
       yy.append(yy[0])
-    plt.plot(xx, yy,'o-')
+    plt.plot(xx, yy, 'k*-', **kargs)
     plt.axis('equal')
 
 class Boundary:
@@ -189,9 +189,9 @@ class Boundary:
       self.BY, self.BYinv = get_Basis(self.n)
 
 
-  def plot(self, p=True):
+  def plot(self, p=True, *args, **kargs):
     for sk in self.s:
-      sk.plot(p)
+      sk.plot(p, *args, **kargs)
 
 class Pointset:
   def __init__(self, x=(), nx=()):
@@ -212,9 +212,9 @@ class Layer:
     self.speed = np.array([sp for bk in b for sp in bk.speed])
     self.kappa = np.array([k for bk in b for k in bk.kappa])
     self.w = np.array([w for bk in b for w in bk.w])
-  def plot(self, p=True):
+  def plot(self, p=True, *args, **kargs):
     for bk in self.b:
-      bk.plot(p)
+      bk.plot(p, *args, **kargs)
   def eval_self(self, exp=[]):
     if exp != []:
       self.exp = exp

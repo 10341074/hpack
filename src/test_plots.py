@@ -93,6 +93,12 @@ def plot_contourf_1(p, args):
   z = z.reshape((p.x.size, p.y.size))
   fig = plt.figure()
   fig = plt.contourf(p.x, p.y, z, 1)
+  plt.axis('equal')
+  plt.axis('square')
+  # ax = fig.add_subplot(111)
+  # ax.set_xlim(-3, 3)
+  # ax.set_ylim(-3, 3)
+  plt.show(block=False)
   l = fig.levels
   # plt.colorbar()
   # p.plot_domain()
@@ -102,11 +108,36 @@ def plot_contourf_1(p, args):
   return v
 
 def stats(v):
-  vc = np.array(v[:,0] + 1j * v[:, 1])
-  bary = sum(vc) / v.size
+  vc = np.array(v[:, 0] + 1j * v[:, 1])
+  # bary = sum(vc) / v.size
+  vtot = np.concatenate((v[:,0], v[:,1]))
+  x1_x2 = ( min(np.floor(vtot)), max(np.ceil(vtot)) )
+  bary = barycenter(x1_x2, 5000, v[:, 0], v[:, 1])
   d = list(abs(vc - bary))
   ax1 = 2 * max(d)
   ax1ind = d.index(max(d))
   ax2 = 2 * min(d)
   ax2ind = d.index(min(d))
   return (bary, ax1, ax2, ax1ind, ax2ind)
+
+# https://stackoverflow.com/questions/217578/how-can-i-determine-whether-a-2d-point-is-within-a-polygon
+def pnpoly(vertx, verty, testx, testy):
+  nvert = vertx.size
+  i, j, c = 0, nvert-1, 0
+  for i in range(nvert):
+    if ( ((verty[i]>testy) != (verty[j]>testy)) and (testx < (vertx[j]-vertx[i]) * (testy-verty[i]) / (verty[j]-verty[i]) + vertx[i]) ):
+      c = 1 - c
+    j = i
+    i = i + 1
+  return c
+
+def barycenter(x1_x2, xn, vertx, verty):
+  x1, x2 = x1_x2
+  testx = numpy.random.uniform(x1, x2, xn)
+  testy = numpy.random.uniform(x1, x2, xn)
+  bary, count = 0, 0
+  for i in range(xn):
+    if pnpoly(vertx, verty, testx[i], testy[i]) == 1:
+      bary = bary + testx[i] + 1j * testy[i]
+      count = count + 1
+  return bary / count

@@ -17,16 +17,20 @@ def v_ex(z):
   return z.real**3 - 3 * z.real * z.imag**2
 def v_p_ex(z):
   return (3 * z.real**2 - 3 * z.imag**2) + 1j * ( - 6 * z.real * z.imag)
-
+###########################################################################################################
 def e0(tt, st0, st1):
+  # first element function
   return (tt - st0) / (st1 - st0)
 def e1(tt, st0, st1):
+  # second element function
   return (st1 - tt) / (st1 - st0)
 def truncate(f):
   return f * (f>=0) * (f<=1)
 def truncate_up(f):
+  # truncate in the exact quadrature nodes the sum of two element functions
   return 1 + (f - 1) * (f<=1)
 def elem_deg1(s, t):
+  # compute all element functions for sources s and targets t
   st_ext = np.concatenate( ([s.t[-1] - 1], s.t, [s.t[0] + 1]) )
   A = np.empty((len(t.t), len(s.t)))
   for j in range(1, len(st_ext) - 1 ):
@@ -34,7 +38,7 @@ def elem_deg1(s, t):
               + truncate_up(truncate(e0(t.t - 1, st_ext[j-1], st_ext[j])) + truncate(e1(t.t - 1, st_ext[j], st_ext[j+1])))\
               + truncate_up(truncate(e0(t.t + 1, st_ext[j-1], st_ext[j])) + truncate(e1(t.t + 1, st_ext[j], st_ext[j+1])))
   return A  
-
+###########################################################################################################
 def iters(rng, f_ex, s_ex, gms):
   err = []
   for n in rng:
@@ -76,9 +80,11 @@ def total(n_ex, gms=gm.sg_one_triangle):
   plt.plot(err, '+-')
   plt.show(block=False)
   return rng, err
-
-def test_injectivity_N0(so): return ipb.computeL0(so = so, T = np.zeros(so.n))
-def test_injectivity_ND(so): return ipb.computeL(so = so, T = np.zeros(so.n))
+##################################################################################################ààà
+def test_injectivity_N0(so):
+  return ipb.computeL0(so = so, T = np.zeros(so.n))
+def test_injectivity_ND(so):
+  return ipb.computeL(so = so, T = np.zeros(so.n))
 def test_injectivity(so, N0=True, ND=False):
   if N0: out(test_injectivity_N0(so), s = 'N0')
   if ND: out(test_injectivity_ND(so), s = 'ND')
@@ -108,7 +114,7 @@ def test_N0(so):
   v__dp = submean(v__dp, so.w, 'Direct Precon')
   e = np.concatenate(( e, [test_N0_out(f_ex - v__dp)] ))
   # direct
-  v__d = ly.layerpotS(s=so).dot(dpb.mapNtoD00(so, v_p))
+  v__d = ly.layerpotS(s=so).dot(dpb.mapNtoD00(so, v_p, ()))
   v__d = submean(v__d, so.w, 'Direct')
   e = np.concatenate(( e, [test_N0_out(f_ex - v__d)] ))
   # clin precond
@@ -116,7 +122,7 @@ def test_N0(so):
   v__clp = submean(v__clp, so.w, 'Composite Linear Precon')
   e = np.concatenate(( e, [test_N0_out(f_ex - v__clp)] ))
   # clin
-  v__cl = ly.layerpotS(s=so).dot(dpb.mapNtoD00(so, np.eye(so.n))).dot(v_p)
+  v__cl = ly.layerpotS(s=so).dot(dpb.mapNtoD00(so, np.eye(so.n), ())).dot(v_p)
   v__cl = submean(v__cl, so.w, 'Composite Linear')
   e = np.concatenate(( e, [test_N0_out(f_ex - v__cl)] ))
   return e, f_ex, v__dp, v__d, v__clp, v__cl
@@ -140,7 +146,7 @@ def test_N0_total(n_ex):
   plt.show(block=False)
   return rng, err
 
-
+#########################################################################################################################
 def thesis(n_ex=101):
   rng, err = total(int(n_ex / 2) * 2 + 1, gm.sg_one_triangle)
   fig = test_plots.plot_loglogscale(rng, err)
@@ -165,7 +171,30 @@ def thesis(n_ex=101):
   plt.title('Ellipse')
   plt.show(block=False)
   plt.savefig('runs/fig-thesis/convergence_laplace_one_ellipse.eps', bbox_inches='tight')
-
+  ##############################
+  rng, err = total(int(n_ex / 2) * 2, gm.sg_one_kite)
+  fig = test_plots.plot_loglogscale(rng, err)
+  ax = fig.add_subplot(111)
+  pnt = ((rng[-1]), (err[-1]))
+  # plt.plot(pnt[0], pnt[1],'kp')
+  ax.annotate('error = %s' % np.float32(err[-1]), xy=pnt , textcoords='data')
+  plt.xlabel('log(n)')
+  plt.ylabel('log(err)')
+  plt.title('Kite')
+  plt.show(block=False)
+  plt.savefig('runs/fig-thesis/convergence_laplace_one_kite.eps', bbox_inches='tight')
+  #############################
+  rng, err = total(int(n_ex / 2) * 2 + 1, gm.sg_one_drop)
+  fig = test_plots.plot_loglogscale(rng, err)
+  ax = fig.add_subplot(111)
+  pnt = ((rng[-1]), (err[-1]))
+  # plt.plot(pnt[0], pnt[1],'kp')
+  ax.annotate('error = %s' % np.float32(err[-1]), xy=pnt , textcoords='data')
+  plt.xlabel('log(n)')
+  plt.ylabel('log(err)')
+  plt.title('Drop')
+  plt.show(block=False)
+  plt.savefig('runs/fig-thesis/convergence_laplace_one_drop.eps', bbox_inches='tight')
   return
 
 if __name__ == '__main__':
