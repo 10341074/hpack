@@ -1,7 +1,6 @@
 from __load__ import *
 # from inverseproblem import *
 import inverseproblem as ipb
-#import __mainpb__ as _m # for test
 import geometries as gm
 
 tt = time.time()
@@ -13,8 +12,8 @@ nsrc = 20
 
 R = ()
 alpha = 1e-10
-delta = 1e-10
-a = alpha # to be deleted
+delta = 1e-6
+#a = alpha # to be deleted
 reg = 1
 regmet = 'tikh'
 solver = 'lu'
@@ -341,9 +340,7 @@ class EIT:
   def plot(self, z=(), t='im'):
     if z == ():
       z = self.z
-    for k in range(len(self.p.x)):
-      if self.p.flag_inside_s[k] == 0:
-        z[k] = 0
+    self.plot_pre()
     plot.plot(self.x, self.y, z, t)
     # self.ld.plot(p=True)
     # self.so.plot()
@@ -354,7 +351,7 @@ class EIT:
     self.so.plot()
     plt.show(block=False)
   def solver(self):
-    self.alpha = alpha
+    # self.alpha = alpha
     print('alpha for solver', self.alpha)
     if BY_set == 0:
       print('BY_set: no')
@@ -381,8 +378,10 @@ class EIT:
     
     RHS_args = {'L0' : self.L0, 'L0B' : self.L0B, 's' : self.so, 'z0' : (), 'theta' : self.theta, 'noiselevel' : self.noiselevel} 
     self.isolver = ipb.solver_init(self.K, self.alpha, self.delta, reg, regmet, solver, RHS_fcom=RHS_fcom, RHS_args=RHS_args, BX=self.so.BX, BY=self.so.BY)
+    self.isolver.alpha = self.alpha
     self.isolver.alpha_orig = self.isolver.alpha
-    self.isolver.alpha_l = 1e-16
+    self.isolver.alpha_l_orig = 1e-16
+    self.isolver.alpha_l = self.isolver.alpha_l_orig
   def ipb(self):
     ipb.iallsols(self.isolver, self.p, self.so)  
     # ipb.iallsols_opt(isolver_NtoD, pp, so, it_alpha=2)

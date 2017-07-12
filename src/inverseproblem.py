@@ -141,6 +141,8 @@ def computeL0(so, T):
     T = so.BX
   print('computing L0')
   allpsi0 = dpb.mapNtoD0(so, T, so.s0) 
+  # allpsi0 = dpb.mapNtoD0_correctedinfirst(so, T, so.s0) 
+  # allpsi0 = dpb.mapNtoD00(so, T, so.s0) 
   Lo = ly.layerpotS(s=so)
   L0 = Lo.dot(allpsi0)
   means = np.ones(so.n).dot(np.diagflat(so.w).dot(L0)) / sum(so.w)
@@ -158,7 +160,10 @@ def computeL(ld, so, T, c):
   if T == ():
     T = so.BX
   print('computing L')
-  allpsi = dpb.mapNtoD(so, ld, T, c, so.s0)
+  # allpsi = dpb.mapNtoD(so, ld, T, c, so.s0)
+  # allpsi = dpb.mapNtoDD0(so, ld, T, c, so.s0)
+  allpsi = dpb.mapNtoDD_correctedinfirst(so, ld, T, c, so.s0)
+  
   Lo = ly.layerpotS(s=so)
   Ld = ly.layerpotS(s=ld, t=so)
   L = Lo.dot(allpsi[0:so.n]) + Ld.dot(allpsi[so.n::])
@@ -472,7 +477,7 @@ def iallsols_opt(isolver, pointstest, so, it_alpha=2):
     if pointstest.flag_inside_s[k] == 1:
       isolver.RHS_args['z0'] = pointstest.x[k]
       isolver.alpha = isolver.alpha_orig
-      isolver.alpha_l = isolver.alpha_l
+      isolver.alpha_l = isolver.alpha_l_orig
       isolver.alpha_r = isolver.alpha_orig
       for k_alpha in range(it_alpha):
         iallsols_one(isolver, w, k, k_alpha)
