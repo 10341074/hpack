@@ -1,4 +1,3 @@
-# from domain import *
 import matplotlib.pyplot as plt
 import numpy as np
 from numpy.linalg import norm
@@ -288,9 +287,8 @@ def NtoD_init(LL0, a, reg, regmet, solver):
   return _gap
 
 def solver_init(A, alpha, delta, reg, regmet, solver, RHS_fcom, RHS_args, BX=(), BY=()):
-  s = lint.Solver(A=A, RHS_fcom=RHS_fcom, RHS_args=RHS_args, BX=BX, BY=BY)
-  s.alpha = alpha
-  s.delta = delta
+  s = lint.Solver(A=A, RHS_fcom=RHS_fcom, RHS_args=RHS_args, BX=BX, BY=BY, alpha=alpha, delta=delta)
+  
   if reg or reg == 1:
     if regmet == 'tikh':
       s.Ar = computeAtikh(A, alpha)
@@ -320,24 +318,19 @@ def NtoD_computeneumb(args):
   xy = ly.phi_xy(z0, s.x)
   yy = ly.phi_yy(z0, s.x)
   # hess = [[xx, xy] , [xy, yy]]
-  a = np.cos(theta) + 1j * np.sin(theta)
-  # rhs = ly.scalar(a, ly.phi_p(z0, s.x))
-  neum = s.nx.real * xx * a.real + s.nx.real * xy * a.imag + \
-         s.nx.imag * xy * a.real + s.nx.imag * yy * a.imag
-  # modified !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  # neumb = neum.dot(np.diagflat(s.w).dot(s.B))
+  d = np.cos(theta) + 1j * np.sin(theta)
+  neum = s.nx.real * xx * d.real + s.nx.real * xy * d.imag + \
+         s.nx.imag * xy * d.real + s.nx.imag * yy * d.imag
   return neum
 
 def NtoD_computeRHS(args, rhs=()):
   L0, L0B, s, z0, theta = args['L0'], args['L0B'], args['s'], args['z0'], args['theta']
   if rhs != (): # remove check at every call
     return rhs
-  a = np.cos(theta) + 1j * np.sin(theta)
+  d = np.cos(theta) + 1j * np.sin(theta)
   neumb = NtoD_computeneumb(args)
-  # print('mean', sum(neumb*s.w))
-  # need decomposition BX of neumb !!!!!!!!!!!!!!!!!!!
   dirh = L0.dot(neumb)
-  rhs = ly.scalar(a, ly.phi_p(z0, s.x))
+  rhs = ly.scalar(d, ly.phi_p(z0, s.x))
   m = sum(rhs * s.w) / sum(s.w)
   rhs = rhs - m
   rhs = rhs - dirh
@@ -507,7 +500,7 @@ def iallsols_opt_append(isolver, pointstest, so, it_alpha=2):
     if pointstest.flag_inside_s[k] == 1:
       isolver.RHS_args['z0'] = pointstest.x[k]
       isolver.alpha = isolver.save_alpha[k, it_old - 1]
-      print(isolver.alpha)
+      # print(isolver.alpha)
       isolver.alpha_l = isolver.save_alpha_l[k]
       isolver.alpha_r = isolver.save_alpha_r[k]
       for k_alpha in range(it_old, it_old + it_alpha):

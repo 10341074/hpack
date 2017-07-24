@@ -9,7 +9,7 @@ def _lstsq(_m, _rhs):
   return linalg.lstsq(_m, _rhs)[0]
 
 class Solver:
-  def __init__(self, A=(), RHS_f=(), RHS_fcom=(), RHS_args=(), BX=(), BY=()):
+  def __init__(self, A=(), RHS_f=(), RHS_fcom=(), RHS_args=(), BX=(), BY=(), alpha=(), delta=()):
     self.A = A
     self.Ar = A
     
@@ -28,3 +28,9 @@ class Solver:
       self.BY = np.eye(A.shape[0])
     else:
       self.BY = BY
+
+    self.alpha = alpha
+    self.delta = delta
+    self.alpha_orig = alpha
+    self.alpha_l_orig = 1e-16
+    self.alpha_r_orig = alpha

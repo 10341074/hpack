@@ -309,41 +309,40 @@ def method_test():
   return isolver_NtoD
 
 class EIT:
-  def __init__(self, alpha = alpha, delta = delta, theta = theta):
+  def __init__(self, alpha = 1e-10, delta = 1e-6, theta = 0, noiselevel = 0, m0 = 40): # try noiselevel 0.01
     self.meshgrid_args = (-2, 2, 20)
     self.p = ()
     self.alpha = alpha
     self.delta = delta
     self.theta = theta
-    self.noiselevel = 0.01
-    self.m0 = 40
+    self.noiselevel = noiselevel
+    self.m0 = m0
     return
   def domain(self, index='one_ellipse', nsb=80, nso=80, nsd=40):
     self.sb, self.so, self.ld = gm.example(index=index, nsb=nsb, nso=nso, nsd=nsd)
   def meshgrid(self, args=(), args_y=((), (), ())):
+    # meshgrid computes x, y, pp(points plot), p(points computation) (pp is p by default)
     if args == ():
       args = self.meshgrid_args
     else:
       self.meshgrid_args = args
     self.x, self.y, self.pp = ipb.meshgrid(args, args_y)
-    self.import_p()
-  def import_p(self, s=()):
+    self.importp()
+  def importp(self, s=()):
     self.p = self.pp
     if s == ():
       s = self.so
     for k in range(len(self.p.x)):
       self.p.flag_inside_s[k] = s.contains(self.p.x[k])
-  def plot_pre(self):
+  def plot_pre(self, default_value = 0):
     for k in range(len(self.p.x)):
       if self.p.flag_inside_s[k] == 0:
-        self.z[k] = 0
+        self.z[k] = default_value
   def plot(self, z=(), t='im'):
     if z == ():
       z = self.z
     self.plot_pre()
-    plot.plot(self.x, self.y, z, t)
-    # self.ld.plot(p=True)
-    # self.so.plot()
+    fig = plot.plot(self.x, self.y, z, t)
     self.plot_domain()
     plt.show(block=False)
   def plot_domain(self):
@@ -378,45 +377,52 @@ class EIT:
     
     RHS_args = {'L0' : self.L0, 'L0B' : self.L0B, 's' : self.so, 'z0' : (), 'theta' : self.theta, 'noiselevel' : self.noiselevel} 
     self.isolver = ipb.solver_init(self.K, self.alpha, self.delta, reg, regmet, solver, RHS_fcom=RHS_fcom, RHS_args=RHS_args, BX=self.so.BX, BY=self.so.BY)
-    self.isolver.alpha = self.alpha
-    self.isolver.alpha_orig = self.isolver.alpha
-    self.isolver.alpha_l_orig = 1e-16
-    self.isolver.alpha_l = self.isolver.alpha_l_orig
+  ###############################################################
+  # heavy methods
+  ###############################################################
   def ipb(self):
+    # solves iallsols for alpha fixed
     ipb.iallsols(self.isolver, self.p, self.so)  
-    # ipb.iallsols_opt(isolver_NtoD, pp, so, it_alpha=2)
-    alpha = np.array([1e-16 + 1e-16 * k for k in range(10)])    
-    # ipb.test_one(isolver_NtoD, pp, so, 10, 1e-16, 1e-16) 
+    # ipb.test_one(isolver_NtoD, pp, so, 10, 1e-16, 1e-16)
+    # save output
     self.z = self.isolver.save_ratio[:, 0]
+    self.plot_pre()
   def test_alpha(self, alpha=()):
     if alpha == ():
       self.alpha = np.array([1e-16 + 1e-16 * k for k in range(10)])
     else:
       self.alpha = alpha
-    ipb.test_one(self.isolver, self.p, so, self.alpha) 
+    ipb.test_one(self.isolver, self.p, so, self.alpha)
+    # save output
     self.z = self.isolver.save_ratio[:, 0]
+    self.plot_pre()
   def ipb_opt(self, it_alpha = 2):
-    print('alpha_orig', self.isolver.alpha)
-    ipb.iallsols_opt(self.isolver, self.p, self.so, it_alpha) 
-    # ipb.iallsols(self.isolver, self.p, self.so)  
-    # alpha = np.array([1e-16 + 1e-16 * k for k in range(10)])    
-    # ipb.test_one(isolver_NtoD, pp, so, 10, 1e-16, 1e-16) 
+    # solves iallsols_opt with Morozov principle and save ratio in z
+    ipb.iallsols_opt(self.isolver, self.p, self.so, it_alpha)
+    # save output
     self.z = self.isolver.save_ratio[:, 0]
+    self.plot_pre()
   def ipb_opt_append(self, it_alpha = 2):
-    print('alpha_orig', self.isolver.alpha)
-    ipb.iallsols_opt_append(self.isolver, self.p, self.so, it_alpha) 
+    ipb.iallsols_opt_append(self.isolver, self.p, self.so, it_alpha)
+    # save output
     self.z = self.isolver.save_ratio[:, 0]
+    self.plot_pre()
+  ###############################################################
   def alpha_fixed_ratio(self, k=0):
+    # change output: compute ratio for iteration (on alpha) fixed equal to k
     zeta = self.isolver.save_zeta[:, :, k]
     zeta = zeta.T
     w = self.so.w
     zeta = self.isolver.BX.dot(zeta)
-    # zeta = zeta - sum(zeta * w) / sum(w)
     zeta = zeta - np.array([sum(np.diagflat(w).dot(zeta)) for r in range(zeta.shape[0])])
-    # zeta = ly.layerpotSD(s=sb, t=so).dot(zeta)
     RHS = self.isolver.save_rhs[:,:,0].T
     # self.z  = np.sqrt(sum(RHS**2 * w)) / np.sqrt(sum(zeta**2 * w))
-    self.z  = np.sqrt(sum(np.diagflat(w).dot(RHS**2))) / np.sqrt(sum(np.diagflat(w).dot(zeta**2)))
+    # self.z  = np.sqrt(sum(np.diagflat(w).dot(RHS**2))) / np.sqrt(sum(np.diagflat(w).dot(zeta**2)))
+    for k in range(self.p.x.size):
+      if self.p.flag_inside_s[k] == 1:
+        self.z[k] = np.sqrt(sum(w * RHS[:, k]**2)) / np.sqrt(sum(w * zeta[:, k]**2))
+      else:
+        self.z[k] = 0
   def basis_X(self, t='e'):
     self.so.BX, self.so.BXinv = sg.get_Basis(n=self.so.n, w=self.so.w, t=t)
   def basis_Y(self, t='e'):
@@ -424,6 +430,7 @@ class EIT:
   def basis_XY(self, t='e'):
     self.basis_X(t)
     self.basis_Y(t)
+  ###############################################################
   def fact_solver(self):
     self.solver()
     self.LLdiff = ipb.computeLLdiff(self.ld, self.so, T=np.eye(self.so.n), c=c)
@@ -434,16 +441,4 @@ class EIT:
   def fact_ieig(self):
     w, v, wind, m0, linreg = ipb.eigselect(self.LLdiff, m0=self.m0)  
     self.z, self.res, nsolgap = ipb.ieig(w, v, wind, m0, linreg, self.isolver, self.pp, self.LL0, self.so, self.theta)
-
-def alpha_fixed_ratio(k=0, s=()):
-  zeta = s.isolver.save_zeta[:, :, k]
-  zeta = zeta.T
-  w = s.so.w
-  zeta = s.isolver.BX.dot(zeta)
-  # zeta = zeta - sum(zeta * w) / sum(w)
-  zeta = zeta - np.array([sum(np.diagflat(w).dot(zeta)) for r in range(zeta.shape[0])])
-  # zeta = ly.layerpotSD(s=sb, t=so).dot(zeta)
-  RHS = s.isolver.save_rhs[:,:,0].T
-  # self.z  = np.sqrt(sum(RHS**2 * w)) / np.sqrt(sum(zeta**2 * w))
-  s.z  = np.sqrt(sum(np.diagflat(w).dot(RHS**2))) / np.sqrt(sum(np.diagflat(w).dot(zeta**2)))
-  
+    self.plot_pre()

@@ -17,5 +17,6 @@ import plot
 import directproblem as dpb
 import inverseproblem as ipb
 import mainpb as  m
+import problem as pb
 import linfunc as linf
 import lintype as lint
