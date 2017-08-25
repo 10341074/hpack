@@ -16,28 +16,16 @@ def first_compare(ld = (), prename = (), name = () ):
     n = 1
   for k in range(0, n):
     p = m.EIT()
-    p.domain('one_ellipse', nso = 100)
+    p.domain('one_ellipse', nso = 150)
     # p.ld = sg.Layer([sg.Boundary([sg.Segment(40, f_inargs = (sh.ellipse, (0, 2, 1)), quad='ps') ])])
     # p.ld = sg.Layer([sg.Boundary([sg.Segment(80, f_inargs = (sh.ellipse, (0, 1.5, 1)), quad='ps', aff=(1, 1.2*np.exp(1j * np.pi/4))) ])])
     if ld == ():
       p.ld = ellipses[k]
     else:
       p.ld = ld
-    p.meshgrid((-3, 3, 80))
+    p.meshgrid((-3, 3, 120))
+    p.m0 = 40
     p.noiselevel = 0
-    p.solver()
-    p.ipb()
-    #############################################
-    fig = plt.figure()
-    # plot
-    plt.contour(p.x, p.y, p.z.reshape(p.y.size, p.x.size), 30)
-    p.ld.plot(lw = 0.8, ms = 1)
-    p.so.plot(lw = 0.8, ms = 1)
-    plt.axis('equal')
-    plt.axis('square')
-    # plt.show(block=False)
-    if savefig:
-      plt.savefig('runs/fig-thesis/%s_lsm_%s%s.eps' %(prename, name, k), bbox_inches='tight')
     #############################################
     # FACTORIZATION METHOD
     ##############################################
@@ -46,15 +34,15 @@ def first_compare(ld = (), prename = (), name = () ):
     #############################################
     fig = plt.figure()
     # plot
-    v = test_plots.plot_contourf_1(p, ())
-    plt.plot(v[:,0], v[:,1],'r-')
-    o = test_plots.stats(v)
-    plt.plot([o[0].real, v[o[3],0]], [o[0].imag, v[o[3],1]], 'b-')
-    print(o)
-    p.ld.plot(lw = 0.8, ms = 1)
+    z = np.array(p.z).reshape((p.x.size, p.y.size))
+    fig = plt.contourf(p.x, p.y, z, 1)
+    path = fig.collections[1].get_paths()[0]
+    v = path.vertices
+    # plt.plot(v[:,0], v[:,1],'r-', lw=1.5)
+    p.ld.plot(lw = 1.5, ms = 1)
     plt.axis('equal')
     plt.axis('square')
-    # plt.show(block=False)
+    plt.show(block=False)
     if savefig:
       plt.savefig('runs/fig-thesis/%s_fm_%s%s.eps' %(prename, name, k), bbox_inches='tight')
   return

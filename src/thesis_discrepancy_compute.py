@@ -13,10 +13,11 @@ p.meshgrid((-3, 3, 80))
 # p.delta = 1e-6
 p.solver()
 
-it_alpha = 16
+it_alpha = 3
 p.ipb_opt(it_alpha=it_alpha)
 
 if dump:
   dill.dump_session('runs/dill/dill_three_ellipse_delta1e-6.pkl')
+dill.dump_session('prova.pkl')
 
 end = input('Press enter')

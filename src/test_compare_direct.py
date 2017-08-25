@@ -102,7 +102,7 @@ def test_N0(so):
   v__dp = submean(v__dp, so.w, 'Direct Precon')
   e = np.concatenate(( e, [test_N0_out(f_ex - v__dp)] ))
   # direct
-  v__d = ly.layerpotS(s=so).dot(dpb.mapNtoD00(so, v_p, ()))
+  v__d = ly.layerpotS(s=so).dot(dpb.mapNtoD0_correctedinfirst(so, v_p, ()))
   v__d = submean(v__d, so.w, 'Direct')
   e = np.concatenate(( e, [test_N0_out(f_ex - v__d)] ))
   # clin precond
@@ -110,7 +110,7 @@ def test_N0(so):
   v__clp = submean(v__clp, so.w, 'Composite Linear Precon')
   e = np.concatenate(( e, [test_N0_out(f_ex - v__clp)] ))
   # clin
-  v__cl = ly.layerpotS(s=so).dot(dpb.mapNtoD00(so, np.eye(so.n), ())).dot(v_p)
+  v__cl = ly.layerpotS(s=so).dot(dpb.mapNtoD0_correctedinfirst(so, np.eye(so.n), ())).dot(v_p)
   v__cl = submean(v__cl, so.w, 'Composite Linear')
   e = np.concatenate(( e, [test_N0_out(f_ex - v__cl)] ))
   return e, f_ex, v__dp, v__d, v__clp, v__cl
@@ -131,7 +131,8 @@ def test_N0_total(n_ex):
     err = np.concatenate(( err, [np.array(test_N0(s)[0])] ))
   for k in range(4):
     plt.plot(err[:, k], '+-')
-  plt.show(block=False)
+    plt.show(block=False)
+    temp = input('Press')
   return rng, err
 
 

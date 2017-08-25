@@ -96,13 +96,16 @@ def layerpotS(k=0, s=[], t=[], o=[], nodiag=0):
 
   A = fundsol(r, k)
   sp = s.speed / 2 / pi # note: 2pi converts to speed wrt s in [0,2pi]
+
   if slf:
     S1 = -1. / 4 / pi # const M_1/2 of Kress w/out speed fac
     # A = A - S1 * circulant_T(log(4. * sin(pi / N * np.arange(N))**2 )) # A=D2=M_2/2
     A = A - S1 * circulant_T(np.concatenate(( [0], log(4. * sin(pi / N * np.arange(1,N))**2 ) )) ) # A=D2=M_2/2
     A[np.diag_indices(N)] = -log(sp) / 2 / pi # diag vals propto curvature?
     A = S1 * circulant_T(quadr.kress_Rjn(float(N)/2)) + 2. * pi / N * A
-    A = A.dot(np.diag(sp))
+    # A = A.dot(np.diag(sp))
+    for j in range(N):
+      A[:, j] = A[:, j] * sp[j]
   else:
     A = A.dot(np.diag(s.w))
   return A

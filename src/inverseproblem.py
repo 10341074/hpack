@@ -17,11 +17,12 @@ import directproblem as dpb
 
 import linfunc as linf
 import lintype as lint
+import setups
 
 verbose = 1
 
 def gap_computeRHS(args, RHS=()):
-  R, U, U_nu, z0, so, theta = args['R'], args['U'], args['U_nu'], args['z0'], args['so'], args['theta']
+  R, U, U_nu, z0, so, theta = args['R'], args['U'], args['U_nu'], args['z0'], args['s'], args['theta']
   if RHS != ():
     return RHS
   F = np.cos(theta) * ly.phi_x(z0, so.x) + np.sin(theta) * ly.phi_y(z0, so.x)
@@ -61,12 +62,14 @@ def computeallpsi(ld, sb, c):
   nsd = ld.n
   nsb = sb.n
   allpsi = np.empty((nsd, nsb), float)
+  allrhs = np.empty((nsd, nsb), float)
   A = dpb.directKpc(ld, c)
   for k in range(nsb):
     z0 = sb.x[k]
-    rhs = dpb.directrhs(l=ld, z0=z0)
-    allpsi[:, k] = dpb.directpb(l=ld, c=c, z0=z0, A_f = (A, linalg.solve), rhs=rhs)
-  return allpsi
+    allrhs[:, k] = dpb.directrhs(l=ld, z0=z0)
+  for k in range(nsb):
+    allpsi[:, k] = dpb.directpb(l=ld, c=c, z0=z0, A_f = (A, linalg.solve), rhs=allrhs[:, k])
+  return allrhs, allpsi
 
 def computeU(allpsi, ld, so, sb):
   nso, nsb = so.n, sb.n
@@ -159,9 +162,10 @@ def computeL(ld, so, T, c):
   if T == ():
     T = so.BX
   print('computing L')
-  # allpsi = dpb.mapNtoD(so, ld, T, c, so.s0)
+  allpsi = dpb.mapNtoD(so, ld, T, c, so.s0)
   # allpsi = dpb.mapNtoDD0(so, ld, T, c, so.s0)
-  allpsi = dpb.mapNtoDD_correctedinfirst(so, ld, T, c, so.s0)
+  # allpsi = dpb.mapNtoDD_correctedinfirst(so, ld, T, c, so.s0)
+  # allpsi = dpb.mapNtoDD_left(so, ld, T, c, so.s0)
   
   Lo = ly.layerpotS(s=so)
   Ld = ly.layerpotS(s=ld, t=so)
@@ -509,57 +513,75 @@ def iallsols_opt_append(isolver, pointstest, so, it_alpha=2):
   return
 
 #####################################################
-def eigselect(A, m0 = ()):
+def eigselect(A, m0 = 15):
+  # symmetrize matrix
   As = 0.5 * (A + A.T)
-  if max([max(abs(r)) for r in As]) > 1e-10:
-    print('Warning: not sym matrix in eigselect')
+  if max([max(abs(r)) for r in As - As.T]) > 1e-10:
+    print('WARNING: not sym matrix in eigselect')
+  # compute eigenvalues
   (w, v) = linalg.eig(As)
-  wind = [(abs(w)[k], k) for k in range(len(w))]
-  wind = sorted(wind, key=lambda x: x[0], reverse=True)
-  if m0 == ():
-    m0 = 15
+  # sort eigenvalues
+  wsortedt = [(abs(w)[k], k) for k in range(len(w))]
+  wsortedt = sorted(wsortedt, key=lambda x: x[0], reverse=True)
   if len(w) < m0:
-    print('Warning: too much eigs')
-  windt = list(map(list, zip(*wind)))
-  plt.plot(range(len(w)), np.log(windt[0]), 'b-+')
-  x = range(m0)
-  y = np.log(windt[0][0:m0])
+    print('WARNING: not enough eigenvalues')
+  # transposition
+  wsorted = list(map(list, zip(*wsortedt)))
+  # linear regression
+  x = np.arange(m0)
+  yk = np.array(wsorted[0][0:m0])
+  if setups.fact_meaned:
+    x = x[: int(x.size / 2)]
+    # yk = np.concatenate(( [yk[0]], np.sqrt(yk[1:-1:2] * yk[2:-1:2]) ))
+    yk = np.concatenate(( [yk[0]], 1.0 / (1.0 / yk[1:-1:2] + 1.0 / yk[2:-1:2]) ))
+  y = np.log(yk)
   linreg = scipy.stats.linregress(x, y)
-  plt.plot(x, linreg.intercept + linreg.slope*x, 'r-+')
-  plt.show(block=False)
-  return(w, v, wind, m0, linreg)
+  # plot
+  # fig = plt.figure()
+  # plt.plot(range(len(w)), np.log(windt[0]), 'b-+')
+  # plt.plot(x, linreg.intercept + linreg.slope*x, 'r-+')
+  # plt.show(block=False)
+  return(w, v, wsorted, m0, linreg)
 
-def ieig(w, v, wind, m0, linreg, isolver, pointstest, LL0, so, theta=0):
-  windt = list(map(list, zip(*wind)))
-  res = ()
-  nsolgap = ()
-  ninv = np.empty(len(pointstest.x), float)
+def eigonly(A, m0 = 15):
+  w, v, wsorted, m0, linreg = eigselect(A, m0)
+  return wsorted
 
+def ieig(w, v, wsorted, m0, linreg, isolver, pointstest, LL0, so, theta=0):
+  # transposition
+  # windt = list(map(list, zip(*wind)))
+  # initialization
+  chi = np.empty(len(pointstest.x), float)
+  # initialize rhs scalar product
   weigths = ()
   if len(w) == so.n:
-    print('scalar product n')
+    print('check: rhs components = n')
     weigths = so.w
   elif len(w) == so.n - 1:
-    print('scalar product n - 1')
+    print('check: rhs componenents = n - 1')
     weigths = np.ones(so.n - 1)
   else:
-    print('Some error in length of w')
+    print('ERROR: some error in length of w')
+  # loop
   for k in range(len(pointstest.x)):
     isolver.RHS_args['z0'] = pointstest.x[k]
-
     RHS = isolver.RHS_fcom(isolver.RHS_args)
-    rhs_coeffs = RHS.T.dot(np.diagflat(weigths).dot(v[:, windt[1][0:m0]]))
-    x = range(m0)
-    rhs_y = np.array(np.log(abs(rhs_coeffs)**2), float) # needed to avoid Type error in Python (bug?)
+    rhs_coeffs = RHS.T.dot(np.diagflat(weigths).dot(v[:, wsorted[1][0:m0]]))
+    # linear regression
+    x = np.arange(m0)
+    yk = rhs_coeffs
+    if setups.fact_meaned:
+      x = x[: int(x.size / 2)]
+      yk = np.concatenate(( [yk[0]], yk[1:-1:2] + yk[2:-1:2] ))
+    rhs_y = np.array(np.log(abs(yk)**2), float) # needed to avoid Type error in Python (bug?)
     rhs_linreg = scipy.stats.linregress(x, rhs_y)
 
-    time.sleep(0.001)
-    if np.exp(rhs_linreg.slope) < np.exp(linreg.slope):
-      ninv[k] = 1
+    if rhs_linreg.slope < linreg.slope:
+      chi[k] = 1
     else:
-      ninv[k] = 0
+      chi[k] = 0
     # ninv[k] = np.exp(rhs_linreg.slope) - np.exp(linreg.slope)
-  return (ninv, res, nsolgap)
+  return chi
 
 ####################################
 def test_one(isolver, pointstest, so, alpha):

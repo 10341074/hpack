@@ -2,6 +2,7 @@ from __load__ import *
 # from inverseproblem import *
 import inverseproblem as ipb
 import geometries as gm
+import setups
 
 tt = time.time()
 tc = time.clock()
@@ -32,173 +33,173 @@ if reg or reg == 1:
 else:
   print('N regularization with solver ', solver)
 
-def x3domain(nsb=0, nso=0, nsd=0):
-  ns = nsrc
+# def x3domain(nsb=0, nso=0, nsd=0):
+#   ns = nsrc
   
-  rb  = 10
-  nsb = rb * ns
-  if nsb == 0:
-    nsb = 160
-  sb = sg.Segment(nsb, f_inargs = (sh.circle, (0, rb)), quad='ps')
+#   rb  = 10
+#   nsb = rb * ns
+#   if nsb == 0:
+#     nsb = 160
+#   sb = sg.Segment(nsb, f_inargs = (sh.circle, (0, rb)), quad='ps')
 
-  ro  = 3
-  nso = ro * ns
-  if nso == 0:
-    nso = 180
-  so = sg.Segment(nso, f_inargs = (sh.circle, (0, ro)), quad='ps')
-  # so = sg.Segment(nso, f_inargs = (sh.ellipse, (0, 4, 3)), quad='ps')
+#   ro  = 3
+#   nso = ro * ns
+#   if nso == 0:
+#     nso = 180
+#   so = sg.Segment(nso, f_inargs = (sh.circle, (0, ro)), quad='ps')
+#   # so = sg.Segment(nso, f_inargs = (sh.ellipse, (0, 4, 3)), quad='ps')
 
-  rd  = 1
-  if nsd == 0:
-    nsd = 80
-  # sd = sg.Segment(nsd, f_inargs = (sh.circle, (0, rd)), quad='ps')
-  sd = sg.Segment(nsd, f_inargs = (sh.ellipse, (0, 2*rd, rd)), quad='ps')
-  # sd = sg.Segment(nsd, Z_args = (sh.dZ, sh.dZp, sh.dZpp, ()), quad='gp', aff=(0, 0.8 + 0.8j))
-  # sd = sg.Segment(nsd, Z_args = (sh.kZ, sh.kZp, sh.kZpp, ()), quad='ps', aff=(0, 0.8 + 0.8j))
-  sd1 = sg.Segment(int(nsd/2), f_inargs = (sh.ellipse, (0, 2*rd, rd)), quad='ps', aff=(-1-1j, 0.4 + 0.4j))
-  sd2 = sg.Segment(int(nsd/2), f_inargs = (sh.ellipse, (0, 2*rd, rd)), quad='ps', aff=(0.5 +1j, 0.4 - 0.4j))
+#   rd  = 1
+#   if nsd == 0:
+#     nsd = 80
+#   # sd = sg.Segment(nsd, f_inargs = (sh.circle, (0, rd)), quad='ps')
+#   sd = sg.Segment(nsd, f_inargs = (sh.ellipse, (0, 2*rd, rd)), quad='ps')
+#   # sd = sg.Segment(nsd, Z_args = (sh.dZ, sh.dZp, sh.dZpp, ()), quad='gp', aff=(0, 0.8 + 0.8j))
+#   # sd = sg.Segment(nsd, Z_args = (sh.kZ, sh.kZp, sh.kZpp, ()), quad='ps', aff=(0, 0.8 + 0.8j))
+#   sd1 = sg.Segment(int(nsd/2), f_inargs = (sh.ellipse, (0, 2*rd, rd)), quad='ps', aff=(-1-1j, 0.4 + 0.4j))
+#   sd2 = sg.Segment(int(nsd/2), f_inargs = (sh.ellipse, (0, 2*rd, rd)), quad='ps', aff=(0.5 +1j, 0.4 - 0.4j))
   
-  # sd1 = sg.Segment(nsd, f_inargs = (sh.circle, (0, rd)), quad='ps', sign=-1)
-  # sd2 = sg.Segment(nsd, f_inargs = (sh.circle, (0, 2*rd)), quad='ps')
+#   # sd1 = sg.Segment(nsd, f_inargs = (sh.circle, (0, rd)), quad='ps', sign=-1)
+#   # sd2 = sg.Segment(nsd, f_inargs = (sh.circle, (0, 2*rd)), quad='ps')
   
-  bd1 = sg.Boundary([sd1])
-  bd2 = sg.Boundary([sd2])
+#   bd1 = sg.Boundary([sd1])
+#   bd2 = sg.Boundary([sd2])
 
-  b = sg.Boundary([sd])
-  # bd2 = sg.poly([2, 1 +1.5j, -1 +1j], n=20)
-  ld = sg.Layer([bd1, bd2], ly.layerpotSD)
-  # ld = sg.Layer([b], ly.layerpotSD)
-  return (ld, so, sb)
+#   b = sg.Boundary([sd])
+#   # bd2 = sg.poly([2, 1 +1.5j, -1 +1j], n=20)
+#   ld = sg.Layer([bd1, bd2], ly.layerpotSD)
+#   # ld = sg.Layer([b], ly.layerpotSD)
+#   return (ld, so, sb)
 
-def method_gap():
-  ld, so, sb = x3domain()
-  nsd, nso, nsb = ld.n, so.n, sb.n
+# def method_gap():
+#   ld, so, sb = x3domain()
+#   nsd, nso, nsb = ld.n, so.n, sb.n
 
-  allpsi = computeallpsi(ld, sb, c)
-  # dpb.plotdpb(ld, sb.x[0], (-2, 2, 100), psi = allpsi[:,0], t='im')
+#   allpsi = computeallpsi(ld, sb, c)
+#   # dpb.plotdpb(ld, sb.x[0], (-2, 2, 100), psi = allpsi[:,0], t='im')
 
-  R, U, U_nu = computeR(allpsi, ld, so, sb)
+#   R, U, U_nu = computeR(allpsi, ld, so, sb)
   
-  RHS_args = {'R': R , 'U': U, 'U_nu': U_nu, 'z0': (), 'so': so, 'theta': theta}
-  RHS_fcom = ipb.gap_computeRHSB
-  isolver_gap = ipb.solver_init(R, a, delta, reg, regmet, solver, RHS_fcom=RHS_fcom, RHS_args=RHS_args, BX=so.BX, BY=so.BY)
-  x, y, pp = meshgrid((-2, 2 , 40))
+#   RHS_args = {'R': R , 'U': U, 'U_nu': U_nu, 'z0': (), 'so': so, 'theta': theta}
+#   RHS_fcom = ipb.gap_computeRHSB
+#   isolver_gap = ipb.solver_init(R, a, delta, reg, regmet, solver, RHS_fcom=RHS_fcom, RHS_args=RHS_args, BX=so.BX, BY=so.BY)
+#   x, y, pp = meshgrid((-2, 2 , 40))
 
-  (ninv, sol, rhs, res, nsolgap) = ipb.iallsols(isolver_gap, pp, so=so)
+#   (ninv, sol, rhs, res, nsolgap) = ipb.iallsols(isolver_gap, pp, so=so)
  
-  plot.plot(x, y, ninv, 'im')
-  ld.plot(p=True)
-  plt.show(block=False)
+#   plot.plot(x, y, ninv, 'im')
+#   ld.plot(p=True)
+#   plt.show(block=False)
 
-  # R = np.array(R, float)
-  # Rreg = np.array(Rreg, float)
+#   # R = np.array(R, float)
+#   # Rreg = np.array(Rreg, float)
 
-  # plt.savefig('fig.pdf')
-  # plt.savefig('fig.png')
-  # plt.savefig('fig.ps')
-  # plt.savefig('fig.eps')
+#   # plt.savefig('fig.pdf')
+#   # plt.savefig('fig.png')
+#   # plt.savefig('fig.ps')
+#   # plt.savefig('fig.eps')
 
-  plt.savefig('fig_ninv.svg')
-  return (ninv, res)
+#   plt.savefig('fig_ninv.svg')
+#   return (ninv, res)
 
-def method_NtoD(p=()):
-  ld, so, sb = x3domain()
-  nsd, nso, nsb = ld.n, so.n, sb.n
+# def method_NtoD(p=()):
+#   ld, so, sb = x3domain()
+#   nsd, nso, nsb = ld.n, so.n, sb.n
 
-  # so.BX = ly.layerpotSDnow(s=sb, t=so)
-  # so.BX = np.eye(so.n)
-  so.BX = so.B[:, 1:]
-  # so.BY = ly.layerpotSD(s=sb, t=so)
-  # so.BX = linf.base_mean(so.BX, so.w)
-  # so.BX = linf.base_norm(so.BX, so.w)
+#   # so.BX = ly.layerpotSDnow(s=sb, t=so)
+#   # so.BX = np.eye(so.n)
+#   so.BX = so.B[:, 1:]
+#   # so.BY = ly.layerpotSD(s=sb, t=so)
+#   # so.BX = linf.base_mean(so.BX, so.w)
+#   # so.BX = linf.base_norm(so.BX, so.w)
 
-  # so.BX = so.BX[:, 1:]
-  # so.BX = linf.base_mean(so.BX, so.w)
+#   # so.BX = so.BX[:, 1:]
+#   # so.BX = linf.base_mean(so.BX, so.w)
   
-  if BY_set == 0:
-    print('BY_set: no')
-    L0 = ipb.computeL0(so, ())
-    L0B = ()
-    L = ipb.computeL(ld, so, (), c)
-    LL0 = ipb.computeLL0(ld, so, T=so.BX, c=c, L0=L0, L=L)
-    RHS_fcom = ipb.NtoD_computeRHS
-    M = LL0
-  elif BY_set == 1:
-    print('BY_set: yes')
-    L0 = ()
-    L0B = ipb.computeL0B(so, ())
-    LB = ipb.computeLB(ld, so, (), c)
-    LL0B = ipb.computeLL0B(ld, so, T=so.BX, c=c, L0B=L0B, LB=LB)
-    RHS_fcom = ipb.NtoD_computeRHSB
-    M = LL0B
+#   if BY_set == 0:
+#     print('BY_set: no')
+#     L0 = ipb.computeL0(so, ())
+#     L0B = ()
+#     L = ipb.computeL(ld, so, (), c)
+#     LL0 = ipb.computeLL0(ld, so, T=so.BX, c=c, L0=L0, L=L)
+#     RHS_fcom = ipb.NtoD_computeRHS
+#     M = LL0
+#   elif BY_set == 1:
+#     print('BY_set: yes')
+#     L0 = ()
+#     L0B = ipb.computeL0B(so, ())
+#     LB = ipb.computeLB(ld, so, (), c)
+#     LL0B = ipb.computeLL0B(ld, so, T=so.BX, c=c, L0B=L0B, LB=LB)
+#     RHS_fcom = ipb.NtoD_computeRHSB
+#     M = LL0B
   
-  BXr = np.eye(so.n)
-  BXr = linf.base_mean(BXr, so.w)
-  L0 = ipb.computeL0(so, BXr)
-  L = ipb.computeL(ld, so, BXr, c)
+#   BXr = np.eye(so.n)
+#   BXr = linf.base_mean(BXr, so.w)
+#   L0 = ipb.computeL0(so, BXr)
+#   L = ipb.computeL(ld, so, BXr, c)
 
-  RHS_args = {'L0' : L0, 'L0B' : L0B, 's' : so, 'z0' : (), 'theta' : theta} 
-  isolver_NtoD = ipb.solver_init(M, a, delta, reg, regmet, solver, RHS_fcom=RHS_fcom, RHS_args=RHS_args, BX=so.BX, BY=so.BY)
+#   RHS_args = {'L0' : L0, 'L0B' : L0B, 's' : so, 'z0' : (), 'theta' : theta} 
+#   isolver_NtoD = ipb.solver_init(M, a, delta, reg, regmet, solver, RHS_fcom=RHS_fcom, RHS_args=RHS_args, BX=so.BX, BY=so.BY)
 
-  x, y, pp = ipb.meshgrid((-2, 1, 20))
-  if p == ():
-    p = pp
-  else:
-    p = sg.Pointset(p)
-  ipb.iallsols(isolver_NtoD, p, so)  
-  # ipb.iallsols_opt(isolver_NtoD, pp, so, it_alpha=2) 
+#   x, y, pp = ipb.meshgrid((-2, 1, 20))
+#   if p == ():
+#     p = pp
+#   else:
+#     p = sg.Pointset(p)
+#   ipb.iallsols(isolver_NtoD, p, so)  
+#   # ipb.iallsols_opt(isolver_NtoD, pp, so, it_alpha=2) 
 
-  # ipb.test_one(isolver_NtoD, pp, so, 10, 1e-16, 1e-16) 
-  ninv = isolver_NtoD.save_ratio[:, 0]
-  res = ()
-  plot.plot(x, y, ninv, 'im')
-  ld.plot(p=True)
-  so.plot()
-  plt.show(block=False)
-  plt.savefig('fig_ninvL0.svg')
-  return isolver_NtoD
-def method_F():
-  ld, so, sb = x3domain()
-  nsd, nso, nsb = ld.n, so.n, sb.n
+#   # ipb.test_one(isolver_NtoD, pp, so, 10, 1e-16, 1e-16) 
+#   ninv = isolver_NtoD.save_ratio[:, 0]
+#   res = ()
+#   plot.plot(x, y, ninv, 'im')
+#   ld.plot(p=True)
+#   so.plot()
+#   plt.show(block=False)
+#   plt.savefig('fig_ninvL0.svg')
+#   return isolver_NtoD
+# def method_F():
+#   ld, so, sb = x3domain()
+#   nsd, nso, nsb = ld.n, so.n, sb.n
 
-  LL0 = ipb.computeLL0(ld, so, T=so.B[:, 1:], c=c)
-  # LL0B = ipb.computeLL0B(ld, so, T=so.B[:, 1:], c=c, testset=0)
-  L0 = ipb.computeL0(so, ())
-  L0B = ipb.computeL0B(so, ())
+#   LL0 = ipb.computeLL0(ld, so, T=so.B[:, 1:], c=c)
+#   # LL0B = ipb.computeLL0B(ld, so, T=so.B[:, 1:], c=c, testset=0)
+#   L0 = ipb.computeL0(so, ())
+#   L0B = ipb.computeL0B(so, ())
 
-  LLdiff = ipb.computeLLdiff(ld, so, T=np.eye(so.n), c=c)
-  LLBdiff = ipb.computeLLBdiff(ld, so, T=so.B[:, 1:], c=c)
+#   LLdiff = ipb.computeLLdiff(ld, so, T=np.eye(so.n), c=c)
+#   LLBdiff = ipb.computeLLBdiff(ld, so, T=so.B[:, 1:], c=c)
 
-  RHS_args = {'L0' : L0, 'L0B' : L0B, 's' : so, 'z0' : (), 'theta' : theta}
-  RHS_fcom = ipb.NtoD_computeRHS
-  isolver_NtoD = ipb.solver_init(LLdiff, a, delta, reg, regmet, solver, RHS_fcom=RHS_fcom, RHS_args=RHS_args, BX=so.BX, BY=so.BY)
+#   RHS_args = {'L0' : L0, 'L0B' : L0B, 's' : so, 'z0' : (), 'theta' : theta}
+#   RHS_fcom = ipb.NtoD_computeRHS
+#   isolver_NtoD = ipb.solver_init(LLdiff, a, delta, reg, regmet, solver, RHS_fcom=RHS_fcom, RHS_args=RHS_args, BX=so.BX, BY=so.BY)
   
-  x, y, pp = ipb.meshgrid((-2, 2, 40))
+#   x, y, pp = ipb.meshgrid((-2, 2, 40))
 
-  w, v, wind, m0, linreg = ipb.eigselect(LLdiff, m0=40)
+#   w, v, wind, m0, linreg = ipb.eigselect(LLdiff, m0=40)
   
-  (ninv, res, nsolgap) = ipb.ieig(w, v, wind, m0, linreg, isolver_NtoD, pp, LL0, so, theta)
+#   (ninv, res, nsolgap) = ipb.ieig(w, v, wind, m0, linreg, isolver_NtoD, pp, LL0, so, theta)
  
-  plot.plot(x, y, ninv, 'im')
-  ld.plot(p=True)
-  so.plot()
-  plt.show(block=False)
-  # plt.savefig('fig_ninv.svg')
-  return (ninv, res)
+#   plot.plot(x, y, ninv, 'im')
+#   ld.plot(p=True)
+#   so.plot()
+#   plt.show(block=False)
+#   # plt.savefig('fig_ninv.svg')
+#   return (ninv, res)
 #############
-ld, so, sb = x3domain()
-nsd, nso, nsb = ld.n, so.n, sb.n
-if __name__ == "__main__":
-  isolver = method_F()
-thetav = np.pi * np.array([0], float)
-for theta in np.array(thetav):
-  # ninv = method_NtoD()
-  pass
-tt = time.time() - tt
-tc = time.clock() - tc
+# ld, so, sb = x3domain()
+# nsd, nso, nsb = ld.n, so.n, sb.n
+# if __name__ == "__main__":
+#   isolver = method_F()
+# thetav = np.pi * np.array([0], float)
+# for theta in np.array(thetav):
+#   # ninv = method_NtoD()
+#   pass
+# tt = time.time() - tt
+# tc = time.clock() - tc
 
-print('time wall-clock = ', tt)
-print('time clock = ', tc)
+# print('time wall-clock = ', tt)
+# print('time clock = ', tc)
 
 if __name__ == "__main__":
   end = input('Press enter')
@@ -309,14 +310,16 @@ def method_test():
   return isolver_NtoD
 
 class EIT:
-  def __init__(self, alpha = 1e-10, delta = 1e-6, theta = 0, noiselevel = 0, m0 = 40): # try noiselevel 0.01
+  def __init__(self, alpha = 1e-10, delta = 1e-6, theta = 0, noiselevel = 0, m0 = 30, m = 15 ): # try noiselevel 0.01
     self.meshgrid_args = (-2, 2, 20)
     self.p = ()
     self.alpha = alpha
     self.delta = delta
     self.theta = theta
     self.noiselevel = noiselevel
+    self.m = m
     self.m0 = m0
+    self.c = c
     return
   def domain(self, index='one_ellipse', nsb=80, nso=80, nsd=40):
     self.sb, self.so, self.ld = gm.example(index=index, nsb=nsb, nso=nso, nsd=nsd)
@@ -431,14 +434,85 @@ class EIT:
     self.basis_X(t)
     self.basis_Y(t)
   ###############################################################
+  # def fact_solver(self):
+  #   self.solver()    
+  #   self.LLdiff = ipb.computeLLdiff(self.ld, self.so, T=np.eye(self.so.n), c=c)
+  #   self.LLBdiff = ipb.computeLLBdiff(self.ld, self.so, T=self.so.B[:, 1:], c=c)
+  #   RHS_args = {'L0' : self.L0, 'L0B' : self.L0B, 's' : self.so, 'z0' : (), 'theta' : self.theta, 'noiselevel' : self.noiselevel}
+  #   RHS_fcom = ipb.NtoD_computeRHS
+  #   self.isolver = ipb.solver_init(self.LLdiff, self.alpha, self.delta, reg, regmet, solver, RHS_fcom=RHS_fcom, RHS_args=RHS_args, BX=self.so.BX, BY=self.so.BY)
   def fact_solver(self):
     self.solver()
     self.LLdiff = ipb.computeLLdiff(self.ld, self.so, T=np.eye(self.so.n), c=c)
-    self.LLBdiff = ipb.computeLLBdiff(self.ld, self.so, T=self.so.B[:, 1:], c=c)
+    self.LLBdiff = ipb.computeLLBdiff(self.ld, self.so, T=self.so.BX[:, 1:], c=c)
+
     RHS_args = {'L0' : self.L0, 'L0B' : self.L0B, 's' : self.so, 'z0' : (), 'theta' : self.theta, 'noiselevel' : self.noiselevel}
     RHS_fcom = ipb.NtoD_computeRHS
     self.isolver = ipb.solver_init(self.LLdiff, self.alpha, self.delta, reg, regmet, solver, RHS_fcom=RHS_fcom, RHS_args=RHS_args, BX=self.so.BX, BY=self.so.BY)
+  def fact_basis(self, fact_L=()):
+    if fact_L == ():
+      fact_L = self.LL0
+    self.fact_L = fact_L
   def fact_ieig(self):
-    w, v, wind, m0, linreg = ipb.eigselect(self.LLdiff, m0=self.m0)  
-    self.z, self.res, nsolgap = ipb.ieig(w, v, wind, m0, linreg, self.isolver, self.pp, self.LL0, self.so, self.theta)
+    self.fact_basis()
+    if setups.fact_L_trigbasis:
+      BT_red = self.so.BT[:, :self.m]
+      self.fact_L = BT_red.T.dot(self.fact_L.dot(BT_red))
+    w, v, wsorted, m0, linreg = ipb.eigselect(self.LL0, m0=self.m0)
+    print('m0000 = ', m0)
+    self.z = ipb.ieig(w, v, wsorted, m0, linreg, self.isolver, self.pp, self.LL0, self.so, self.theta)
     self.plot_pre()
+####################################################################################################
+  def rg_solver(self):
+    if BY_set == 0:
+      print('BY_set: no')
+      self.L0 = ipb.computeL0(self.so, ())
+      self.L0B = ()
+      self.L = ipb.computeL(self.ld, self.so, (), c)
+      self.LL0 = ipb.computeLL0(self.ld, self.so, T=self.so.BX, c=c, L0=self.L0, L=self.L)
+      RHS_fcom = ipb.NtoD_computeRHS
+      #############################################################
+      # new
+      allrhs, allpsi = ipb.computeallpsi(self.ld, self.sb, self.c)
+      # dpb.plotdpb(ld, sb.x[0], (-2, 2, 100), psi = allpsi[:,0], t='im')
+      R, U, U_nu = ipb.computeR(allpsi, self.ld, self.so, self.sb)
+      RHS_fcom = ipb.gap_computeRHS
+      self.K = R
+    elif BY_set == 1:
+      print('BY_set: yes')
+      # self.L0 = ()
+      # self.L0B = ipb.computeL0B(self.so, ())
+      # self.LB = ipb.computeLB(self.ld, self.so, (), c)
+      # self.LL0B = ipb.computeLL0B(self.ld, self.so, T=self.so.BX, c=c, L0B=self.L0B, LB=self.LB)
+      # RHS_fcom = ipb.NtoD_computeRHSB
+      # self.K = self.LL0B
+
+    self.u, self.w, self.v = linalg.svd(self.K)
+    
+    BXr = np.eye(self.so.n)
+    BXr = linf.base_mean(BXr, self.so.w)
+    L0 = ipb.computeL0(self.so, BXr)
+    L = ipb.computeL(self.ld, self.so, BXr, c)
+    
+    RHS_args = {'L0' : (), 'L0B' : (), 's' : self.so, 'z0' : (), 'theta' : self.theta, 'noiselevel' : self.noiselevel}
+    # new
+    # RHS_args = {'R': R , 'U': U, 'U_nu': U_nu, 'z0': (), 'so': so, 'theta': theta}
+
+    self.isolver = ipb.solver_init(self.K, self.alpha, self.delta, reg, regmet, solver, RHS_fcom=RHS_fcom, RHS_args=RHS_args, BX=self.so.BX, BY=self.so.BY) # old
+    # self.rg_isolver_gap = ipb.solver_init(self.R, self.alpha, self.delta, reg, regmet, solver, RHS_fcom=RHS_fcom, RHS_args=RHS_args, BX=so.BX, BY=so.BY)
+    # self.isolver = self.rg_isolver
+
+    self.isolver.RHS_args['R'] = R
+    self.isolver.RHS_args['U'] = U
+    self.isolver.RHS_args['U_nu'] = U_nu
+  
+
+  def rg_ipb(self):
+    # solves iallsols for alpha fixed
+    # ipb.iallsols(self.isolver, self.p, self.so)  # old
+    ipb.iallsols(self.isolver, self.p, self.so)
+    # ipb.test_one(isolver_NtoD, pp, so, 10, 1e-16, 1e-16)
+    # save output
+    self.z = self.isolver.save_ratio[:, 0]
+    self.plot_pre()
+

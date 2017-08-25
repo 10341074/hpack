@@ -70,12 +70,18 @@ class Basis:
 def get_Basis(n, w=(), t='e'):
   b = Basis(n, w, t)
   return (b.B, b.Binv)
+def get_basis_trigonometric(n):
+  B = linf.trigonometricBasis(n)
+  Borth = linf.gramschmidt(np.ones(n), B.T)
+  return Borth
   
 class Segment:
   def __init__(self, n, Z_args=((), (), (), ()), f_inargs=((), ()), quad='ps', aff=(0, 1), sign=1, more=1):
   # def __init__(self, n, Z_args=((), (), (), ()), f_inargs=((), ()), quad='ps', aff=(0, 1), Z=[], Zp=[], Zpp=[], args=[], f=[], inargs=[], periodic=False):
     # 'p' periodic
     # 'ps' periodic shift
+
+    # 'gf' graded full (with initial point)
     # if Z == []: # line to be deleted
     Z, Zp, Zpp, args = Z_args
     # if f == []: # line to be deleted
@@ -86,11 +92,14 @@ class Segment:
       self.t = np.array([float(k) / n for k in range(n)], float)
       if quad == 'ps':
         self.t = self.t + 1. / 2 / n
-    elif quad == 'gp' or quad == 'g':
+    elif quad == 'gp' or quad == 'g' or quad == 'gf':
       temp_s = np.array([float(k) / n for k in range(n)], float)
-      # no initial point with w=0
-      temp_s = temp_s[1:]
-      n = n - 1
+      if quad == 'gf':
+        pass
+      else:
+        # no initial point with w=0
+        temp_s = temp_s[1:]
+        n = n - 1
       #
       self.t = graded.w(2.0 * pi * temp_s) / 2 / pi
       self.a = graded.wp(2.0 * pi * temp_s)
@@ -109,11 +118,15 @@ class Segment:
     self.kappa = -np.real(np.conj(-1j * self.dx) * self.ddx) / (self.speed**3) # signed curvature
     if quad == 'p' or quad == 'ps':
       self.w = np.array([sp / n for sp in self.speed], float)
-    elif quad == 'gp' or quad=='g':
+    elif quad == 'gp' or quad=='g' or quad == 'gf':
       self.speed = self.speed * self.a
-      self.w = np.array([sp / (n) for sp in self.speed], float)
-      if quad == 'g':
-        self.w = np.array([sp / (n+1) for sp in self.speed], float)        
+      # self.w = np.array([sp / (n) for sp in self.speed], float)
+      if quad == 'gp' or quad == 'g':
+        self.w = np.array([sp / (n+1) for sp in self.speed], float)
+        print('graded mesh in segment, n = ', n, ' w.size =', self.w.size)
+      elif quad == 'gf':
+        self.w = np.array([sp / n for sp in self.speed], float)        
+        print('graded FULL mesh in segment, n = ', n, ' w.size =', self.w.size)
       # self.w = np.array([sp / n for sp in self.speed], float) * self.a
     else:
       self.w = np.array([sp / (n-1) for sp in self.speed], float)
@@ -122,14 +135,15 @@ class Segment:
     # miscellaneous
     if more:
       K = ly.layerpotSD(s=self)
-      nu, s0 = linf.eigmaxpower(K)
+      nu, s0 = linf.eigmaxpower(K) # eigenvector with  max. modulus eigenvalues: it's density which makes constant simple layer
       
       self.s0 = s0
-      self.S = linf.gramschmidt(s0=s0)
-      self.Sw = linf.gramschmidtw(s=self, s0=s0)
-      self.SL = linf.gramschmidt(s0=self.w)
-      self.B = linf.gramschmidtw(s=self, s0=np.ones(self.n))
-      self.B = linf.gramschmidt(s0=np.ones(self.n))
+      self.S = linf.gramschmidt(s0=s0) # 
+      # self.Sw = linf.gramschmidtw(s=self, s0=s0)
+      self.SL = linf.gramschmidt(s0=self.w) #
+      # self.B = linf.gramschmidtw(s=self, s0=np.ones(self.n))
+      # self.B = linf.gramschmidt(s0=np.ones(self.n))
+      self.BT = get_basis_trigonometric(self.n)
       
       self.BX, self.BXinv = get_Basis(self.n)
       self.BY, self.BYinv = get_Basis(self.n)
@@ -255,7 +269,7 @@ def poly(vx, n):
   s = []
 
   for j in range(nvx):
-    s.append(Segment(n, f_inargs=(sh.line, (vx[j-1], vx[j])), quad='g', more=0))
+    s.append(Segment(n, f_inargs=(sh.line, (vx[j-1], vx[j])), quad='gp', more=0))
   b = Boundary(s, more=1)
   return b
   

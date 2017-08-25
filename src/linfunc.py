@@ -1,6 +1,20 @@
 import numpy as np
 import numpy.linalg
 
+def trigonometricBasis(n):
+  B = np.empty((n, n), float)
+  t = 2 * np.pi * np.arange(n) / n
+  if n % 2 == 1:
+    print('WARNING: not even trigonometric basis')
+  B[:, 0] = 1
+  for j in range(1, n):
+    k = np.ceil(j/2)
+    if  j % 2 == 1:
+      B[:, j] = np.cos(k * t)
+    else:
+      B[:, j] = np.sin(k * t)
+  return B
+
 def eigmaxpower(A, nit=100):
   it = 0
   q = np.ones(len(A))
@@ -43,7 +57,7 @@ gramschmidtBoundary = gramschmidtw
 def gramschmidt(s0, E=()): # needs n
   n = len(s0)
   if E == ():
-    E = np.diagflat(np.ones(n))
+    E = np.eye(n)
   S = np.empty((n, n))
   S[0] = s0 / numpy.linalg.norm(s0)
   for k in range(1, n):

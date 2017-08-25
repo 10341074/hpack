@@ -11,8 +11,9 @@ import segment as sg
 import plot
 import time
 
+import setups
 import linfunc as linf
-verbose=0
+verbose = False
 
 # (K' + 0.5 * c(h) * I) psi = -phi_nu
 
@@ -31,18 +32,21 @@ def directKpc(l, c):
     print('directKpc condition number= ', numpy.linalg.cond(np.array(Kpc, float)))
   return Kpc
 
-def directrhs(l=[], b=[], z0=[]):
-  if z0 == []:
+def directrhs(l, z0=()):
+  if z0 == ():
     print('Error: z0 in directrhs')
-  if l != []:
-    d = np.array([z for bk in l.b for z in bk.x]) - z0
-    nx = np.array([nxk for bk in l.b for nxk in bk.nx])
-  elif b != []:
-    d = b.x - z0
-    nx = b.nx
+  # if l != ():
+  #   d = np.array([z for bk in l.b for z in bk.x]) - z0
+  #   nx = np.array([nxk for bk in l.b for nxk in bk.nx])
+  # elif b != ():
+  #   d = b.x - z0
+  #   nx = b.nx
+  d = l.x - z0
+  nx = l.nx
   r = abs(d)
   cosphi = ly.scalar(nx, d) / r
-  rhs = - - ly.fundsol_deriv(r, cosphi, 0)
+  # rhs = - - ly.fundsol_deriv(r, cosphi, 0)
+  rhs = ly.fundsol_deriv(r, cosphi, 0)
   return rhs
   
 def directpb(l, c, z0, A_f=((), ()), rhs=[]):
@@ -147,6 +151,7 @@ def mapNtoD0(l, g, s0=()):
   (lu, piv) = linalg.lu_factor(Kps1)
   if gs1.ndim == 1:
     phi1 = linalg.lu_solve((lu, piv), gs1)
+    # phi1 = linalg.lstsq(Kps1, gs1)[0]
     phi = np.concatenate(( [0], phi1 ))
     if verbose:
       print('residual = ', numpy.linalg.norm(Kps1.dot(phi1) - gs1))
@@ -159,6 +164,7 @@ def mapNtoD0(l, g, s0=()):
     #   time.sleep(0.001)
     # phi2 = phi2.T
     phi1 = linalg.lu_solve((lu, piv), gs1)
+    # phi1 = linalg.lstsq(Kps1, gs1)[0]
     phi = np.concatenate(( np.zeros((1, nt)), phi1))
   else:
     print('Error dimensions for gs in mapNtoD0')
@@ -271,7 +277,7 @@ def mapNtoDdiff(lo, ld, g, c, s0=()):
   else:
     print('Error dimensions for gs1 in mapNtoD')
   return np.concatenate((S.dot(phi[0:no]), phi[no::]))
-
+#######################################################################
 def mapNtoD00(l, g, s0):
   n = l.n
   Kp = ly.layerpotSD(s=l)
@@ -280,6 +286,8 @@ def mapNtoD00(l, g, s0):
     print('mapNtoD condition number= ', numpy.linalg.cond(np.array(Kp, float)))
     print('mapNtoD determninant= ', numpy.linalg.det(np.array(Kp, float)))
   phi = linalg.lstsq(Kp, g)[0]
+  (lu, piv) = linalg.lu_factor(Kp)
+  phi = linalg.lu_solve((lu, piv), g)
   return phi
 
 def mapNtoDD0(lo, ld, g, c, s0):
@@ -305,7 +313,7 @@ def mapNtoDD0(lo, ld, g, c, s0):
     gz = np.concatenate(( g, np.zeros((nd, nt)) ))
   phi = linalg.lstsq(Ks, gz)[0]
   return phi
-
+##################################################################################
 def mapNtoD0_correctedinfirst(l, g, s0=()):
   n = l.n
   Kp = ly.layerpotSD(s=l)
@@ -317,7 +325,10 @@ def mapNtoD0_correctedinfirst(l, g, s0=()):
   mean_reduced = l.w[1:].dot(g[1:]) / l.w[0]
   g[0] = - mean_reduced
 
-  phi = linalg.solve(Kp, g)
+  phi = linalg.lstsq(Kp, g)[0]
+  if verbose and g.ndim == 1:
+    print('residual', max(abs(np.array(Kp.dot(phi) - g))))
+
   return phi
 
 def mapNtoDD_correctedinfirst(lo, ld, g, c, s0):
@@ -348,4 +359,122 @@ def mapNtoDD_correctedinfirst(lo, ld, g, c, s0):
   gz[0] = - mean_reduced
 
   phi = linalg.lstsq(Ks, gz)[0]
+  (lu, piv) = linalg.lu_factor(Ks)
+  phi = linalg.lu_solve((lu, piv), gz)
+  return phi
+####################################
+def mapNtoD0_left(l, g, s0=()):
+  n = l.n
+  Kp = ly.layerpotSD(s=l)
+  Kp[np.diag_indices(n)] = Kp[np.diag_indices(n)] + 0.5
+
+  Kps = l.SL.T.dot(Kp)
+  gs = l.SL.T.dot(g)
+  if setups.mapNtoD_left == False:
+    Kps = Kp
+    gs = g
+
+  if setups.mapNtoD_s0_firstline:
+    gs[0] = 0
+    Kps[0, :] = l.w
+    pass
+  
+  phi = linalg.lstsq(Kps, gs)[0]
+
+  if verbose and gs.ndim == 1:
+    print('mapNtoD0_left: residual', max(abs(np.array(Kps.dot(phi) - gs))))
+  return phi
+
+def mapNtoDD_left(lo, ld, g, c, s0=()):
+  no = lo.n
+  nd = ld.n
+  Kpd = ly.layerpotSD(s=ld)
+  Kpo = ly.layerpotSD(s=lo)
+  Kpd[np.diag_indices(nd)] = Kpd[np.diag_indices(nd)] + 0.5 * c
+  Kpo[np.diag_indices(no)] = Kpo[np.diag_indices(no)] + 0.5
+  Kd2o = ly.layerpotSD(s=ld, t=lo)
+  Ko2d = ly.layerpotSD(s=lo, t=ld)
+  
+  row1 = np.concatenate((Kpo.T, Kd2o.T)).T
+  row2 = np.concatenate((Ko2d.T, Kpd.T)).T
+  row1 = lo.SL.T.dot(row1)
+  Ks = np.concatenate((row1, row2))
+
+  if g.ndim == 1:
+    gz = np.concatenate((lo.SL.T.dot(g), np.zeros(nd)))
+  elif g.ndim == 2:
+    nt = g.shape[1]
+    gz= np.concatenate(( lo.SL.T.dot(g), np.zeros((nd, nt)) ))
+  if setups.mapNtoD_left == False:
+    if g.ndim == 1:
+      gz = np.concatenate(( g, np.zeros(nd) ))
+    elif g.ndim == 2:
+      nt = g.shape[1]
+      gz= np.concatenate(( g, np.zeros((nd, nt)) ))
+
+  if setups.mapNtoD_s0_firstline: # generally False
+    gz[0] = 0
+    Ks[0, :no] = lo.w
+    Ks[0, no:] = 0
+    pass
+
+  phi = linalg.lstsq(Ks, gz)[0]
+  # (lu, piv) = linalg.lu_factor(Ks)
+  # phi = linalg.lu_solve((lu, piv), gz)  
+  return phi
+##################################################################
+def mapNtoD0_left_s0(l, g, s0=()):
+  n = l.n
+  Kp = ly.layerpotSD(s=l)
+  Kp[np.diag_indices(n)] = Kp[np.diag_indices(n)] + 0.5
+
+  Kps = l.SL.T.dot(Kp)
+  gs = l.SL.T.dot(g)
+  if setups.mapNtoD_left == False:
+    Kps = Kp
+    gs = g
+
+  gs[0] = 0
+  Kps[0, :] = l.s0
+
+  phi = linalg.lstsq(Kps, gs)[0]
+
+  if verbose and gs.ndim == 1:
+    print('residual', max(abs(np.array(Kps.dot(phi) - gs))))
+  return phi
+
+def mapNtoDD_left_s0(lo, ld, g, c, s0=()):
+  no = lo.n
+  nd = ld.n
+  Kpd = ly.layerpotSD(s=ld)
+  Kpo = ly.layerpotSD(s=lo)
+  Kpd[np.diag_indices(nd)] = Kpd[np.diag_indices(nd)] + 0.5 * c
+  Kpo[np.diag_indices(no)] = Kpo[np.diag_indices(no)] + 0.5
+  Kd2o = ly.layerpotSD(s=ld, t=lo)
+  Ko2d = ly.layerpotSD(s=lo, t=ld)
+  
+  row1 = np.concatenate((Kpo.T, Kd2o.T)).T
+  row2 = np.concatenate((Ko2d.T, Kpd.T)).T
+  # row1 = lo.SL.T.dot(row1)
+  Ks = np.concatenate((row1, row2))
+
+  if g.ndim == 1:
+    gz = np.concatenate(( lo.SL.T.dot(g), np.zeros(nd) ))
+  elif g.ndim == 2:
+    nt = g.shape[1]
+    gz= np.concatenate(( lo.SL.T.dot(g), np.zeros((nd, nt)) ))
+  if setups.mapNtoD_left == False:
+    if g.ndim == 1:
+      gz = np.concatenate(( g, np.zeros(nd) ))
+    elif g.ndim == 2:
+      nt = g.shape[1]
+      gz= np.concatenate(( g, np.zeros((nd, nt)) ))
+
+  gz[0] = 0
+  Ks[0, :no] = lo.s0
+  Ks[0, no:] = 0
+
+  phi = linalg.lstsq(Ks, gz)[0]
+  # (lu, piv) = linalg.lu_factor(Ks)
+  # phi = linalg.lu_solve((lu, piv), gz)  
   return phi

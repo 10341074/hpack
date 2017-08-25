@@ -1,4 +1,6 @@
 from src import *
+
+savefig = False
 #######################################################################
 # def v_ex(z):
 #   return z.real**3 - 3 * z.real * z.imag**2
@@ -69,30 +71,51 @@ def NtoD_computeRHS(args, p, rhs=()):
   # rhs = rhs + noise
   return ext_rhs
 ##############################################################################
-def plot(p, *args):
+def plotf(p, *args):
   p.plot_pre()
+  plt.figure()
   figf = plt.contourf(p.x, p.y, p.z.reshape(p.y.size, p.x.size), *args)
   fig = plt.contour(p.x, p.y, p.z.reshape(p.y.size, p.x.size), *args, colors='k', linewidths=0.3)
   for c in fig.collections:
     c.set_linestyle('solid')
   p.so.plot(ms = 0.8, lw=2)
   plt.axis('square')
-  plt.show()
+  plt.show(block=False)
+  return
+def plot(p, *args):
+  p.plot_pre()
+  plt.figure()
+  # figf = plt.contourf(p.x, p.y, p.z.reshape(p.y.size, p.x.size), *args)
+  fig = plt.contour(p.x, p.y, p.z.reshape(p.y.size, p.x.size), *args, linewidths=0.8)
+  # fig = plt.contour(p.x, p.y, p.z.reshape(p.y.size, p.x.size), *args, linewidths=0.3)
+  for c in fig.collections:
+    c.set_linestyle('solid')
+  p.so.plot(ms = 0.8, lw=2)
+  p.ld.plot(ms = 0, lw = 0.3, ls = ':')
+  plt.axis('square')
+  plt.show(block=False)
   return
 
 if __name__ == "__main__":
   c = 2
   p = m.EIT()
+  prename = 'contourplots'
   p.domain(nsb=150, nso=200, nsd=150)
   p.meshgrid((-3, 3, 200))
   p.solver()
-  
+
+  name = 'direct'
   p.z = computeL0(p.so, ly.scalar(v_p_ex(p.so.x), p.so.nx), p.p)
-  plot(p, 50)
+  plotf(p, 50)
+  if savefig:
+    plt.savefig('runs/fig-thesis/%s_%s_0.eps' %(prename, name), bbox_inches='tight')
   p.z = computeL(p.ld, p.so, ly.scalar(v_p_ex(p.so.x), p.so.nx), c, p.p)
   # p.z = v_ex(p.pp.x)
-  plot(p, 50)
+  plotf(p, 50)
+  if savefig:
+    plt.savefig('runs/fig-thesis/%s_%s_D.eps' %(prename, name), bbox_inches='tight')
 
+  name = 'rhs'
   z0 = 1j + 1
   L0 = computeL0(p.so, np.eye(p.so.n), p.p)
   RHS_args = {'L0' : L0, 'L0B' : (), 's' : p.so, 'z0' : z0, 'theta' : p.theta}
@@ -103,8 +126,13 @@ if __name__ == "__main__":
   V = np.concatenate((list(reversed(-V)), V))
   
   plot(p, V)
+  if savefig:
+    plt.savefig('runs/fig-thesis/%s_%s_0.eps' %(prename, name), bbox_inches='tight')
   
   L0 = computeL(p.ld, p.so, np.eye(p.so.n), c, p.p)
   RHS_args = {'L0' : L0, 'L0B' : (), 's' : p.so, 'z0' : z0, 'theta' : p.theta}
   p.z = NtoD_computeRHS(RHS_args, p.p)
   plot(p, V)
+  if savefig:
+    plt.savefig('runs/fig-thesis/%s_%s_D.eps' %(prename, name), bbox_inches='tight')
+  ret = input('Press')

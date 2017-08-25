@@ -2,6 +2,7 @@ from src import *
 import test_plots
 
 savefig = False
+plotstats = False
 
 ellipses = (
     sg.Layer([sg.Boundary([sg.Segment(80, f_inargs = (sh.ellipse, (0, 2, 1)), quad='ps') ])]), 
@@ -47,9 +48,10 @@ def first_compare(ld = (), prename = (), name = () ):
     fig = plt.figure()
     # plot
     v = test_plots.plot_contourf_1(p, ())
-    plt.plot(v[:,0], v[:,1],'r-')
     o = test_plots.stats(v)
-    plt.plot([o[0].real, v[o[3],0]], [o[0].imag, v[o[3],1]], 'b-')
+    if plotstats:
+      plt.plot(v[:,0], v[:,1],'r-')
+      plt.plot([o[0].real, v[o[3],0]], [o[0].imag, v[o[3],1]], 'b-')
     print(o)
     p.ld.plot(lw = 0.8, ms = 1)
     plt.axis('equal')

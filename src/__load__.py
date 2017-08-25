@@ -10,8 +10,8 @@ from importlib import reload
 
 # __modules__ are scripts, import *
 # modules contains classes, functions, __main__ to be tested
-import __tools__ # for help(__tools__)
-from __tools__ import *
+#import __tools__ # for help(__tools__)
+#from __tools__ import *
 from __types__ import *
 
 import layerpot as ly

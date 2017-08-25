@@ -47,7 +47,7 @@ def sg_one_triangle(nsd):
 
 
 
-def example(index = 'one_ellipse', nsb = 80, nso = 80, nsd = 40, rb = 10, ro = 3):
+def example(index = 'one_ellipse', nsb = 80, nso = 100, nsd = 40, rb = 5, ro = 3):
   sb = sg.Segment(nsb, f_inargs = (sh.circle, (0, rb)), quad='ps')
   so = sg.Segment(nso, f_inargs = (sh.circle, (0, ro)), quad='ps')
   switcher_d = {
