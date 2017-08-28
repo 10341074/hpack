@@ -23,4 +23,4 @@ import lintype as lint
 
 
 import tools as tls
-import setups as sps
+import setups

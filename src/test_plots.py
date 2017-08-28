@@ -114,9 +114,9 @@ def stats(v):
   x1_x2 = ( min(np.floor(vtot)), max(np.ceil(vtot)) )
   bary = barycenter(x1_x2, 5000, v[:, 0], v[:, 1])
   d = list(abs(vc - bary))
-  ax1 = 2 * max(d)
+  ax1 = max(d)
   ax1ind = d.index(max(d))
-  ax2 = 2 * min(d)
+  ax2 = min(d)
   ax2ind = d.index(min(d))
   return (bary, ax1, ax2, ax1ind, ax2ind)
 

@@ -91,7 +91,7 @@ def plot(p, *args):
   for c in fig.collections:
     c.set_linestyle('solid')
   p.so.plot(ms = 0.8, lw=2)
-  p.ld.plot(ms = 0, lw = 0.3, ls = ':')
+  p.ld.plot(ms = 0, lw = 0.8, ls = ':')
   plt.axis('square')
   plt.show(block=False)
   return
@@ -106,12 +106,14 @@ if __name__ == "__main__":
 
   name = 'direct'
   p.z = computeL0(p.so, ly.scalar(v_p_ex(p.so.x), p.so.nx), p.p)
-  plotf(p, 50)
+  # plotf(p, 50)
+  plot(p, 50)
   if savefig:
     plt.savefig('runs/fig-thesis/%s_%s_0.eps' %(prename, name), bbox_inches='tight')
   p.z = computeL(p.ld, p.so, ly.scalar(v_p_ex(p.so.x), p.so.nx), c, p.p)
   # p.z = v_ex(p.pp.x)
-  plotf(p, 50)
+  # plotf(p, 50)
+  plot(p, 50)
   if savefig:
     plt.savefig('runs/fig-thesis/%s_%s_D.eps' %(prename, name), bbox_inches='tight')
 

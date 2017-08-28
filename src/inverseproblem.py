@@ -512,7 +512,9 @@ def iallsols_opt_append(isolver, pointstest, so, it_alpha=2):
         # time.sleep(0.005)
   return
 
-#####################################################
+###########################################################################################################
+#### FACTORIZATION
+###########################################################################################################
 def eigselect(A, m0 = 15):
   # symmetrize matrix
   As = 0.5 * (A + A.T)
@@ -528,8 +530,8 @@ def eigselect(A, m0 = 15):
   # transposition
   wsorted = list(map(list, zip(*wsortedt)))
   # linear regression
-  x = np.arange(m0)
-  yk = np.array(wsorted[0][0:m0])
+  x = np.arange(setups.fact_w_discard, m0 - setups.fact_w_discard)
+  yk = np.array(wsorted[0][setups.fact_w_discard:m0 - setups.fact_w_discard])
   if setups.fact_meaned:
     x = x[: int(x.size / 2)]
     # yk = np.concatenate(( [yk[0]], np.sqrt(yk[1:-1:2] * yk[2:-1:2]) ))
@@ -546,7 +548,14 @@ def eigselect(A, m0 = 15):
 def eigonly(A, m0 = 15):
   w, v, wsorted, m0, linreg = eigselect(A, m0)
   return wsorted
-
+def eigplot(wsorted, m0, linreg, savefig = 0):
+  # plot
+  fig = plt.figure()
+  plt.plot(range(len(wsorted[0])), np.log(wsorted[0]), 'bp', ms=2)
+  x = np.arange(m0)
+  plt.plot(x, linreg.intercept + linreg.slope*x, 'r-*', ms=0.2)
+  plt.show(block=False)  
+  return
 def ieig(w, v, wsorted, m0, linreg, isolver, pointstest, LL0, so, theta=0):
   # transposition
   # windt = list(map(list, zip(*wind)))
@@ -566,10 +575,14 @@ def ieig(w, v, wsorted, m0, linreg, isolver, pointstest, LL0, so, theta=0):
   for k in range(len(pointstest.x)):
     isolver.RHS_args['z0'] = pointstest.x[k]
     RHS = isolver.RHS_fcom(isolver.RHS_args)
-    rhs_coeffs = RHS.T.dot(np.diagflat(weigths).dot(v[:, wsorted[1][0:m0]]))
+    if setups.fact_L_trigbasis:
+      BT_red = so.BT[:, :m0]
+      RHS = BT_red.T.dot(RHS) 
+    rhs_coeffs = RHS.T.dot(v[:, wsorted[1][0:m0]])
+    # rhs_coeffs = RHS.T.dot(np.diagflat(weigths).dot(v[:, wsorted[1][0:m0]]))
     # linear regression
-    x = np.arange(m0)
-    yk = rhs_coeffs
+    x = np.arange(setups.fact_w_discard, m0 - setups.fact_w_discard)
+    yk = rhs_coeffs[setups.fact_w_discard : m0 - setups.fact_w_discard]
     if setups.fact_meaned:
       x = x[: int(x.size / 2)]
       yk = np.concatenate(( [yk[0]], yk[1:-1:2] + yk[2:-1:2] ))

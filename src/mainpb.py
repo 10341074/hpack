@@ -449,16 +449,18 @@ class EIT:
     RHS_args = {'L0' : self.L0, 'L0B' : self.L0B, 's' : self.so, 'z0' : (), 'theta' : self.theta, 'noiselevel' : self.noiselevel}
     RHS_fcom = ipb.NtoD_computeRHS
     self.isolver = ipb.solver_init(self.LLdiff, self.alpha, self.delta, reg, regmet, solver, RHS_fcom=RHS_fcom, RHS_args=RHS_args, BX=self.so.BX, BY=self.so.BY)
-  def fact_basis(self, fact_L=()):
-    if fact_L == ():
-      fact_L = self.LL0
-    self.fact_L = fact_L
+    self.LLfact = self.LL0
+    # self.LLfact = self.LLdiff
   def fact_ieig(self):
-    self.fact_basis()
+    mselect = self.m0
     if setups.fact_L_trigbasis:
       BT_red = self.so.BT[:, :self.m]
-      self.fact_L = BT_red.T.dot(self.fact_L.dot(BT_red))
-    w, v, wsorted, m0, linreg = ipb.eigselect(self.LL0, m0=self.m0)
+      self.LLfact = BT_red.T.dot(self.LLfact.dot(BT_red))
+      mselect = self.m
+    w, v, wsorted, m0, linreg = ipb.eigselect(self.LLfact, m0=mselect)
+    # ipb.eigplot(wsorted, m0, linreg)
+    self.fact_wsorted = wsorted
+    self.fact_linreg = linreg
     print('m0000 = ', m0)
     self.z = ipb.ieig(w, v, wsorted, m0, linreg, self.isolver, self.pp, self.LL0, self.so, self.theta)
     self.plot_pre()
