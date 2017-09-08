@@ -19,7 +19,7 @@ reg = 1
 regmet = 'tikh'
 solver = 'lu'
 
-theta =  0
+theta =  np.pi /4
 
 BY_set = 0
 
@@ -500,14 +500,14 @@ class EIT:
     # new
     # RHS_args = {'R': R , 'U': U, 'U_nu': U_nu, 'z0': (), 'so': so, 'theta': theta}
 
-    self.isolver = ipb.solver_init(self.K, self.alpha, self.delta, reg, regmet, solver, RHS_fcom=RHS_fcom, RHS_args=RHS_args, BX=self.so.BX, BY=self.so.BY) # old
+    self.isolver = ipb.solver_init(self.K, self.alpha, self.delta, reg, regmet, solver, RHS_fcom=RHS_fcom, RHS_args=RHS_args, BX=(), BY=()) # old
     # self.rg_isolver_gap = ipb.solver_init(self.R, self.alpha, self.delta, reg, regmet, solver, RHS_fcom=RHS_fcom, RHS_args=RHS_args, BX=so.BX, BY=so.BY)
     # self.isolver = self.rg_isolver
 
     self.isolver.RHS_args['R'] = R
     self.isolver.RHS_args['U'] = U
     self.isolver.RHS_args['U_nu'] = U_nu
-  
+    self.isolver.w = self.sb.w
 
   def rg_ipb(self):
     # solves iallsols for alpha fixed

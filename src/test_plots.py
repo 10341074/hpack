@@ -102,8 +102,10 @@ def plot_contourf_1(p, args):
   l = fig.levels
   # plt.colorbar()
   # p.plot_domain()
+  # path = fig.collections[1].get_paths()[1] # triangleplot
   path = fig.collections[1].get_paths()[0]
   v = path.vertices
+  # v = np.concatenate(( v[-1:-1], v[:-6])) # triangleplot
   plt.show(block=False)
   return v
 

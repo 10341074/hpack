@@ -26,7 +26,7 @@ def solve_inc(n, gms):
   # return L0.dot(v_p)
   return v, s
 def computeL_allpsi_exact(ld, so, T, c):
-  print('computing L')
+  print('computing L EXACT')
   so_ex = sg_so(500)
   T = ly.scalar(v_p_ex(so_ex.x), so_ex.nx)
   allpsi = dpb.mapNtoD(so_ex, ld, T, c, so_ex.s0)
@@ -47,8 +47,9 @@ def computeL_exact(ld, so, T, c, allpsi):
 
 def solve_inc_exact(n, gms, allpsi):
   s = gms(n)
-  v_p = ly.scalar(v_p_ex(s.x), s.nx)
-  v = computeL_exact(ld = gm.sg_one_kite(int(2/3 * s.n)), so = s, T = v_p, c=3, allpsi=allpsi)
+  # v_p = ly.scalar(v_p_ex(s.x), s.nx)
+  # v = computeL_exact(ld = gm.sg_one_kite(int(2/3 * s.n)), so = s, T = v_p, c=3, allpsi=allpsi)
+  v = computeL_exact(ld = (), so = s, T = (), c=3, allpsi=allpsi)
   # L0 = ipb.computeL0(so = s, T = np.eye(s.n))
   # return L0.dot(v_p)
   return v, s
@@ -84,9 +85,10 @@ def iters_inc(rng, gms):
     # new_err = linalg.norm((A.dot(f) - f_ex) * s_ex.w)
 
     f_ex_n = np.loadtxt('runs/ff++/un-%s.txt' %n)    
-    # f_ex_n, s = solve_inc_exact(n, gms, allpsi)
+    # f_ex_n, s2 = solve_inc_exact(n, gms, allpsi)
     
     f_ex_n = f_ex_n - sum(f_ex_n * s.w) / sum(s.w)
+
     new_err = np.sqrt(sum(s.w * (f - f_ex_n)**2))
     
     f_fem = np.loadtxt('runs/ff++/incu-%s.txt' %n)
@@ -145,7 +147,9 @@ def thesis(n_ex = 202):
   plt.xlabel('log(n)')
   plt.ylabel('log(err)')
   plt.show(block=False)
-
+  if savefig:
+    plt.savefig('runs/fig-thesis/convergence_inclusion_onekite_bemfem_bem.eps', bbox_inches='tight')
+  #############
   fig = test_plots.plot_loglogscale(rng, fem_err)
   ax = fig.add_subplot(111)
   pnt = ((rng[-1]), (fem_err[-1]))
@@ -154,9 +158,8 @@ def thesis(n_ex = 202):
   plt.xlabel('log(n)')
   plt.ylabel('log(fem err)')
   plt.show(block=False)
-  #################################################################################
   if savefig:
-    plt.savefig('runs/fig-thesis/convergence_laplace_bem_fem.eps', bbox_inches='tight')
+    plt.savefig('runs/fig-thesis/convergence_inclusion_onekite_bemfem_fem.eps', bbox_inches='tight')
   return
 if __name__ == "__main__":
   thesis()

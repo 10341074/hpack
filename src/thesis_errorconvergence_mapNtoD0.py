@@ -38,6 +38,7 @@ def iters(rng, f_ex, s_ex, gms):
     f_ex_n = v_ex(s.x)
     f_ex_n = f_ex_n - sum(f_ex_n * s.w) / sum(s.w)
     new_err = np.sqrt(sum(s.w * (f - f_ex_n)**2))
+    # new_err = max(abs(f - f_ex_n))
     err = np.concatenate((err, [new_err]))
     # plt.plot(s_ex.t, f_ex, '+-')
     # plt.plot(s.t, f, '+-')

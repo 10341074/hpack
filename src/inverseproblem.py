@@ -380,9 +380,11 @@ def func_alpha_bis(alpha, alpha_l, alpha_r, disc):
 
 def iallsols(isolver, pointstest, so):
   # compute all sols, named zeta, of inverse problem: (N_reg) zeta = rhs
-  w = so.w
+  w = isolver.w
+  if isolver.w == ():
+    w = so.w
   isolver.save_zeta = np.empty((len(pointstest.x), isolver.A.shape[1]), float)
-  isolver.save_sol = np.empty((len(pointstest.x), so.n), float)
+  isolver.save_sol = np.empty((len(pointstest.x), isolver.A.shape[1]), float)
   isolver.save_ratio = np.empty((len(pointstest.x),1), float)
 
   # test one point

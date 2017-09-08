@@ -9,7 +9,7 @@ def _lstsq(_m, _rhs):
   return linalg.lstsq(_m, _rhs)[0]
 
 class Solver:
-  def __init__(self, A=(), RHS_f=(), RHS_fcom=(), RHS_args=(), BX=(), BY=(), alpha=(), delta=()):
+  def __init__(self, A=(), RHS_f=(), RHS_fcom=(), RHS_args=(), BX=(), BY=(), alpha=(), delta=(), w=()):
     self.A = A
     self.Ar = A
     
@@ -34,3 +34,5 @@ class Solver:
     self.alpha_orig = alpha
     self.alpha_l_orig = 1e-16
     self.alpha_r_orig = alpha
+
+    self.w = w
