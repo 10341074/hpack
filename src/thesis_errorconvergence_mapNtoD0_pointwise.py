@@ -23,19 +23,12 @@ def iters(rng, f_ex, s_ex, gms):
     ###########################################
     new_err = max(abs(f - f_ex_n))
     err = np.concatenate((err, [new_err]))
-    # plt.plot(s_ex.t, f_ex, '+-')
-    # plt.plot(s.t, f, '+-')
-    # plt.plot(s_ex.t, A.dot(f),'+-')
-    # plt.show(block=False)
-    # end = input('Press')
   return err
 
 def solve(n, gms):
   s = gms(n)
   v_p = ly.scalar(v_p_ex(s.x), s.nx)
   v = ipb.computeL0(so = s, T = v_p)
-  # L0 = ipb.computeL0(so = s, T = np.eye(s.n))
-  # return L0.dot(v_p)
   return v, s
 
 def exact(n, gms):
@@ -51,6 +44,7 @@ def total(n_ex, gms=gm.sg_one_triangle):
   return rng, err
 
 def thesis(n_ex=202):
+  #############################
   # rng, err = total(int(n_ex / 2) * 2 + 1, gm.sg_one_triangle)
   # fig = test_plots.plot_loglogscale(rng, err)
   # ax = fig.add_subplot(111)
@@ -76,26 +70,6 @@ def thesis(n_ex=202):
   plt.show(block=False)
   if savefig:
     plt.savefig('runs/fig-thesis/convergence_laplace_one_ellipse_pointwise.eps', bbox_inches='tight')
-  ##############################
-  # # plot 2
-  # fig = plt.figure()
-
-  # plt.plot(rng, err, 'k+-', lw=1, ms=4, ls=':')
-  # ax = fig.add_subplot(111)
-  # ax.set_yscale('log')
-  # # ax.set_xscale('log')
-
-  # ax = fig.add_subplot(111)
-  # pnt = ((rng[-1] ** 0.8), (err[-1]))
-  # # plt.plot(pnt[0], pnt[1],'kp')
-  # ax.annotate('error = %s' % np.float32(err[-1]), xy=pnt , textcoords='data')
-  # plt.xlabel('n')
-  # plt.ylabel('log(err)')
-  # plt.title('Ellipse')
-  # plt.show(block=False)
-  # if savefig:
-  #   plt.savefig('runs/fig-thesis/convergence_laplace_one_ellipse_logy.eps', bbox_inches='tight')
-
   # ###############################
   # rng, err = total(int(n_ex / 2) * 2, gm.sg_one_kite)
   # fig = test_plots.plot_loglogscale(rng, err)

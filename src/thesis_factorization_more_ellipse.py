@@ -56,7 +56,7 @@ def first_compare(ld = (), prename = (), name = () ):
     if savefig:
       plt.savefig('runs/fig-thesis/%s_fm_%s%s_m0%s.eps' %(prename, name, k, p.m0), bbox_inches='tight')
     #############################################
-    eigplot(p.fact_wsorted, p.m0, p.fact_linreg)
+    eigplot(p.fact_wsorted, p.m0, p.fact_linreg, prename = prename, name = name)
     ############################################################################
     ############################################################################
     # # LLdiff
@@ -102,10 +102,10 @@ def first_compare(ld = (), prename = (), name = () ):
     if savefig:
       plt.savefig('runs/fig-thesis/%s_fm_%s%s_m0%s.eps' %(prename, name, k, p.m0), bbox_inches='tight')
     ###########################################
-    eigplot(p.fact_wsorted, p.m0, p.fact_linreg)
+    eigplot(p.fact_wsorted, p.m0, p.fact_linreg, prename = prename, name = name)
   return
 
-def eigplot(wsorted, m0, linreg):
+def eigplot(wsorted, m0, linreg, prename = (), name = ()):
   # plot
   fig = plt.figure()
   x = np.arange(m0)

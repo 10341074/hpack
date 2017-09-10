@@ -121,7 +121,7 @@ def thesis(n_ex = 202):
   err, fem_err = iters_inc(rng, sg_so)
   fig = test_plots.plot_loglogscale(rng, err)
   ax = fig.add_subplot(111)
-  pnt = ((rng[-1]), (err[-1]))
+  pnt = ((rng[-1] ** 0.6), (err[-1]))
   # plt.plot(pnt[0], pnt[1],'kp')
   ax.annotate('error = %s' % np.float32(err[-1]), xy=pnt , textcoords='data')
   plt.xlabel('log(n)')
@@ -132,7 +132,7 @@ def thesis(n_ex = 202):
   #############
   fig = test_plots.plot_loglogscale(rng, fem_err)
   ax = fig.add_subplot(111)
-  pnt = ((rng[-1]), (fem_err[-1]))
+  pnt = ((rng[-1] ** 0.8), (fem_err[-1]))
   # plt.plot(pnt[0], pnt[1],'kp')
   ax.annotate('error = %s' % np.float32(fem_err[-1]), xy=pnt , textcoords='data')
   plt.xlabel('log(n)')

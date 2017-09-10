@@ -15,20 +15,10 @@ def iters(rng, f_ex, s_ex, gms):
   for n in rng:
     f2d, s = solve_inc(n, gms)
     f_ex_n = v_ex(s.x)
-    ############################################
-    # new_err = np.sqrt(sum(s.w * (f - f_ex_n)**2))
-    ############################################
-    # error with P1 definition on fitted mesh
-    # new_err = refined.normErr(gms, (), (), v_ex, f, sbig, s, 'Inf')
     ###########################################
     new_err = max(abs(f2d - f_ex2d))
     ############################################
     err = np.concatenate((err, [new_err]))
-    # plt.plot(s_ex.t, f_ex, '+-')
-    # plt.plot(s.t, f, '+-')
-    # plt.plot(s_ex.t, A.dot(f),'+-')
-    # plt.show(block=False)
-    # end = input('Press')
   return err
 
 def solve_inc(n, gms):

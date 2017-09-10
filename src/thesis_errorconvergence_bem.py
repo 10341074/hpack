@@ -15,30 +15,6 @@ def solve_inc(n, gms):
   v_p = ly.scalar(v_p_ex(s.x), s.nx)
   v = ipb.computeL(ld = gm.sg_one_kite(int(3/4 * s.n)), so = s, T = v_p, c=3)
   return v, s
-# def computeL_allpsi_exact(ld, so, T, c):
-#   print('computing L EXACT')
-#   so_ex = sg_so(500)
-#   T = ly.scalar(v_p_ex(so_ex.x), so_ex.nx)
-#   allpsi = dpb.mapNtoD(so_ex, ld, T, c, so_ex.s0)
-#   # allpsi = dpb.mapNtoDD0(so, ld, T, c, so.s0)
-#   # allpsi = dpb.mapNtoDD_correctedinfirst(so, ld, T, c, so.s0)
-#   # allpsi = dpb.mapNtoDD_left(so, ld, T, c, so.s0)
-#   return allpsi
-# def computeL_exact(ld, so, T, c, allpsi):  
-#   so_ex = sg_so(500)
-#   ld_ex = gm.sg_one_kite(int(2/3 * 500))
-#   Lo = ly.layerpotS(s=so_ex, t=so)
-#   Ld = ly.layerpotS(s=ld_ex, t=so)
-#   L = Lo.dot(allpsi[0:so_ex.n]) + Ld.dot(allpsi[so_ex.n::])
-#   # means = sum(np.diagflat(so.w).dot(L)) / sum(so.w) # correct? strange sum by rows
-#   means = np.ones(so.n).dot(np.diagflat(so.w).dot(L)) / sum(so.w)
-#   L = L - np.array([means for k in range(so.n)])
-#   return L
-
-# def solve_inc_exact(n, gms, allpsi):
-#   s = gms(n)
-#   v = computeL_exact(ld = (), so = s, T = (), c=3, allpsi=allpsi)
-#   return v, s
 
 def iters_inc(rng, gms):
   err = []
@@ -53,12 +29,6 @@ def iters_inc(rng, gms):
 
     new_err = np.sqrt(sum(s.w * (f - f_extr)**2))
     err = np.concatenate((err, [new_err]))
-    
-    # plt.plot(s_ex.t, f_ex, '+-')
-    # plt.plot(s.t, f_fem, '+-', color = '%s'% float(n/rng[-1]), ms = '0.3')
-    # plt.plot(s_ex.t, A.dot(f),'+-')
-  # plt.show(block=False)
-  # end = input('Press')
   return err
 
 def thesis(n_ex = 202):

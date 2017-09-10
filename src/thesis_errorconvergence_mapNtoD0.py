@@ -19,23 +19,16 @@ def iters(rng, f_ex, s_ex, gms):
     # new_err = np.sqrt(sum(s.w * (f - f_ex_n)**2))
     ############################################
     # error with P1 definition on fitted mesh
-    new_err = refined.normErr(gms, (), (), v_ex, f, sbig, s, 'Inf')
+    new_err = refined.normErr(gms, (), (), v_ex, f, sbig, s, 'L2')
     ###########################################
-    # new_err = max(abs(f - f_ex_n))
     err = np.concatenate((err, [new_err]))
-    # plt.plot(s_ex.t, f_ex, '+-')
-    # plt.plot(s.t, f, '+-')
-    # plt.plot(s_ex.t, A.dot(f),'+-')
-    # plt.show(block=False)
-    # end = input('Press')
+  print('Estimated degree', (np.log(err[1:]) - np.log(err[:-1])) / (np.log(rng[1:]) - np.log(rng[:-1])))
   return err
 
 def solve(n, gms):
   s = gms(n)
   v_p = ly.scalar(v_p_ex(s.x), s.nx)
   v = ipb.computeL0(so = s, T = v_p)
-  # L0 = ipb.computeL0(so = s, T = np.eye(s.n))
-  # return L0.dot(v_p)
   return v, s
 
 def exact(n, gms):

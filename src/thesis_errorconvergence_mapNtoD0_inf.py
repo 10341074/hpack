@@ -15,24 +15,13 @@ def iters(rng, f_ex, s_ex, gms):
   for n in rng:
     f2d, s = solve(n, gms)
     f_ex_n = v_ex(s.x)
-    # f_ex_n = f_ex_n - sum(f_ex_n * s.w) / sum(s.w)
     mean_f_ex_n =  sum(f_ex_n * s.w) / sum(s.w)
-    ############################################
-    # new_err = np.sqrt(sum(s.w * (f - f_ex_n)**2))
-    ############################################
-    # error with P1 definition on fitted mesh
-    # new_err = refined.normErr(gms, (), (), v_ex, f, sbig, s, 'Inf')
     ###########################################
     mp = refined.normErrInf()
     f_ex2d = v_ex(mp.x) - mean_f_ex_n 
     new_err = max(abs(f2d - f_ex2d))
     ############################################
     err = np.concatenate((err, [new_err]))
-    # plt.plot(s_ex.t, f_ex, '+-')
-    # plt.plot(s.t, f, '+-')
-    # plt.plot(s_ex.t, A.dot(f),'+-')
-    # plt.show(block=False)
-    # end = input('Press')
   return err
 
 def solve(n, gms):
@@ -76,12 +65,11 @@ def thesis(n_ex=199):
   ax.set_yscale('log')
   # ax.set_xscale('log')
   pnt = ((rng[-1]) * 0.6, (err[-1]))
-  # plt.plot(pnt[0], pnt[1],'kp')
   ax.annotate('error = %s' % np.float32(err[-1]), xy=pnt , textcoords='data')
   plt.xlabel('n')
   plt.ylabel('log(err)')
   plt.title('Ellipse')
-  plt.axis('square')
+  # plt.axis('square')
   plt.show(block=False)
   if savefig:
     plt.savefig('runs/fig-thesis/convergence_laplace_one_ellipse_inf.eps', bbox_inches='tight')
@@ -89,6 +77,6 @@ def thesis(n_ex=199):
 
 
 if __name__ == '__main__':
-  n_ex = sys.argv[1]
-  thesis(int(n_ex))
+  # n_ex = sys.argv[1]
+  thesis(int(202))
   ret = input('Press')
