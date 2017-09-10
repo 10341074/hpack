@@ -74,8 +74,8 @@ def plot_ellipses():
   return
 
 if __name__ == "__main__":
-  # first_compare()
-  first_compare(gm.sg_one_triangle(nd), 'first_compare', 'triangle')
-  first_compare(gm.sg_one_kite(nd), 'first_compare', 'kite')
-  first_compare(gm.sg_one_drop(nd), 'first_compare', 'drop')
+  first_compare()
+  # first_compare(gm.sg_one_triangle(nd), 'first_compare', 'triangle')
+  # first_compare(gm.sg_one_kite(nd), 'first_compare', 'kite')
+  # first_compare(gm.sg_one_drop(nd), 'first_compare', 'drop')
   end = input('Press enter')

@@ -407,9 +407,10 @@ def iallsols(isolver, pointstest, so):
       # time.sleep(0.0005)
       isolver.save_ratio[k] = np.sqrt(sum(RHS**2 * w)) / np.sqrt(sum(zeta**2 * w))
   return
-def iallsols_one(isolver, w, k, k_alpha):
+def iallsols_one(isolver, w, k, k_alpha, RHS = ()):
   # 1st linear sistem
-  RHS = isolver.RHS_fcom(isolver.RHS_args)
+  if RHS == ():
+    RHS = isolver.RHS_fcom(isolver.RHS_args)
   RHSr = isolver.RHS_f(isolver, RHS=RHS)
   isolver.Ar = computeAtikh(isolver.A, isolver.alpha)
   zeta = linalg.solve(isolver.Ar, RHSr)
@@ -481,7 +482,8 @@ def iallsols_opt(isolver, pointstest, so, it_alpha=2):
       isolver.alpha_l = isolver.alpha_l_orig
       isolver.alpha_r = isolver.alpha_orig
       for k_alpha in range(it_alpha):
-        iallsols_one(isolver, w, k, k_alpha)
+        RHS = isolver.RHS_fcom(isolver.RHS_args)
+        iallsols_one(isolver, w, k, k_alpha, RHS = RHS)
         # time.sleep(0.005)
     count = count + 1
     if count / len(pointstest.x) * 100 > step:
