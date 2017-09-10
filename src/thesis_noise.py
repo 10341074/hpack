@@ -6,7 +6,8 @@ def funcnoise():
   p = m.EIT()
   p.domain()
   p.meshgrid((-3, 3, 80))
-  p.noiselevel = 1e-2
+  p.noiselevel = 0
+  p.noiselevelK = 0
   p.delta = p.noiselevel
   p.alpha = 1e-10
   p.solver()
@@ -31,6 +32,7 @@ def funcnoise():
   p.m0 = 30
   p.fact_solver()
   p.LLfact = p.LL0
+  p.fact_addnoiseK()
   p.fact_ieig()
   ######################################
   z = np.array(p.z)

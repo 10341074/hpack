@@ -3,6 +3,7 @@ from __load__ import *
 import inverseproblem as ipb
 import geometries as gm
 import setups
+import numpy.random
 
 tt = time.time()
 tc = time.clock()
@@ -310,13 +311,14 @@ def method_test():
   return isolver_NtoD
 
 class EIT:
-  def __init__(self, alpha = 1e-10, delta = 1e-6, theta = 0, noiselevel = 0, m0 = 30, m = 15 ): # try noiselevel 0.01
+  def __init__(self, alpha = 1e-10, delta = 1e-6, theta = 0, noiselevel = 0, noiselevelK = 0, m0 = 30, m = 15 ): # try noiselevel 0.01
     self.meshgrid_args = (-2, 2, 20)
     self.p = ()
     self.alpha = alpha
     self.delta = delta
     self.theta = theta
     self.noiselevel = noiselevel
+    self.noiselevelK = noiselevelK
     self.m = m
     self.m0 = m0
     self.c = c
@@ -378,7 +380,8 @@ class EIT:
     L0 = ipb.computeL0(self.so, BXr)
     L = ipb.computeL(self.ld, self.so, BXr, c)
     
-    RHS_args = {'L0' : self.L0, 'L0B' : self.L0B, 's' : self.so, 'z0' : (), 'theta' : self.theta, 'noiselevel' : self.noiselevel} 
+    RHS_args = {'L0' : self.L0, 'L0B' : self.L0B, 's' : self.so, 'z0' : (), 'theta' : self.theta, 'noiselevel' : self.noiselevel}
+    self.addnoiseK()
     self.isolver = ipb.solver_init(self.K, self.alpha, self.delta, reg, regmet, solver, RHS_fcom=RHS_fcom, RHS_args=RHS_args, BX=self.so.BX, BY=self.so.BY)
   ###############################################################
   # heavy methods
@@ -451,6 +454,13 @@ class EIT:
     self.isolver = ipb.solver_init(self.LLdiff, self.alpha, self.delta, reg, regmet, solver, RHS_fcom=RHS_fcom, RHS_args=RHS_args, BX=self.so.BX, BY=self.so.BY)
     self.LLfact = self.LL0
     # self.LLfact = self.LLdiff
+    self.K = self.LLfact
+    self.addnoiseK()
+    self.LLfact = self.K
+  def fact_addnoiseK(self):
+    self.K = self.LLfact
+    self.addnoiseK()
+    self.LLfact = self.K
   def fact_ieig(self):
     mselect = self.m0
     if setups.fact_L_trigbasis:
@@ -465,6 +475,12 @@ class EIT:
     self.z = ipb.ieig(w, v, wsorted, m0, linreg, self.isolver, self.pp, self.LL0, self.so, self.theta)
     self.plot_pre()
 ####################################################################################################
+  def addnoiseK(self):
+    noisemodul = max([max(abs(r)) for r in self.K]) * self.noiselevelK
+    noise = noisemodul * numpy.random.normal(0, 1, self.K.shape)
+    self.K = self.K + noise
+    print('Added noise K')
+    
   def rg_solver(self):
     if BY_set == 0:
       print('BY_set: no')
