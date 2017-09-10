@@ -518,7 +518,8 @@ def iallsols_opt_append(isolver, pointstest, so, it_alpha=2):
       isolver.alpha_l = isolver.save_alpha_l[k]
       isolver.alpha_r = isolver.save_alpha_r[k]
       for k_alpha in range(it_old, it_old + it_alpha):
-        iallsols_one(isolver, w, k, k_alpha)
+        RHS = isolver.RHS_fcom(isolver.RHS_args)
+        iallsols_one(isolver, w, k, k_alpha, RHS = RHS)
         # time.sleep(0.005)
   return
 
