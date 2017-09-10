@@ -472,6 +472,8 @@ def iallsols_opt(isolver, pointstest, so, it_alpha=2):
 
   isolver.save_rhs = np.empty((len(pointstest.x), len(RHS), it_alpha), float)
   # alpha_orig = isolver.alpha
+  count = 0
+  step = 5
   for k in range(len(pointstest.x)):
     if pointstest.flag_inside_s[k] == 1:
       isolver.RHS_args['z0'] = pointstest.x[k]
@@ -481,6 +483,10 @@ def iallsols_opt(isolver, pointstest, so, it_alpha=2):
       for k_alpha in range(it_alpha):
         iallsols_one(isolver, w, k, k_alpha)
         # time.sleep(0.005)
+    count = count + 1
+    if count / len(pointstest.x) * 100 > step:
+      print('percentage', step)
+      step = step + 5
   return
 def iallsols_opt_append(isolver, pointstest, so, it_alpha=2):
   w = so.w

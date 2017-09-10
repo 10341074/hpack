@@ -19,9 +19,9 @@ def iters(rng, f_ex, s_ex, gms):
     # new_err = np.sqrt(sum(s.w * (f - f_ex_n)**2))
     ############################################
     # error with P1 definition on fitted mesh
-    new_err = refined.normErr(gms, (), (), v_ex, f, sbig, s, 'Inf')
+    # new_err = refined.normErr(gms, (), (), v_ex, f, sbig, s, 'Inf')
     ###########################################
-    # new_err = max(abs(f - f_ex_n))
+    new_err = max(abs(f - f_ex_n))
     err = np.concatenate((err, [new_err]))
     # plt.plot(s_ex.t, f_ex, '+-')
     # plt.plot(s.t, f, '+-')
@@ -67,7 +67,7 @@ def thesis(n_ex=202):
   rng, err = total(int(n_ex / 2) * 2, gm.sg_one_ellipse)
   fig = test_plots.plot_loglogscale(rng, err)
   ax = fig.add_subplot(111)
-  pnt = ((rng[-1] ** 0.8), (err[-1]))
+  pnt = ((rng[-1] ** 0.8), (err[-1] ** 0.9))
   # plt.plot(pnt[0], pnt[1],'kp')
   ax.annotate('error = %s' % np.float32(err[-1]), xy=pnt , textcoords='data')
   plt.xlabel('log(n)')
@@ -75,53 +75,53 @@ def thesis(n_ex=202):
   plt.title('Ellipse')
   plt.show(block=False)
   if savefig:
-    plt.savefig('runs/fig-thesis/convergence_laplace_one_ellipse.eps', bbox_inches='tight')
+    plt.savefig('runs/fig-thesis/convergence_laplace_one_ellipse_pointwise.eps', bbox_inches='tight')
   ##############################
-  # plot 2
-  fig = plt.figure()
+  # # plot 2
+  # fig = plt.figure()
 
-  plt.plot(rng, err, 'k+-', lw=1, ms=4, ls=':')
-  ax = fig.add_subplot(111)
-  ax.set_yscale('log')
-  # ax.set_xscale('log')
+  # plt.plot(rng, err, 'k+-', lw=1, ms=4, ls=':')
+  # ax = fig.add_subplot(111)
+  # ax.set_yscale('log')
+  # # ax.set_xscale('log')
 
-  ax = fig.add_subplot(111)
-  pnt = ((rng[-1] ** 0.8), (err[-1]))
-  # plt.plot(pnt[0], pnt[1],'kp')
-  ax.annotate('error = %s' % np.float32(err[-1]), xy=pnt , textcoords='data')
-  plt.xlabel('n')
-  plt.ylabel('log(err)')
-  plt.title('Ellipse')
-  plt.show(block=False)
-  if savefig:
-    plt.savefig('runs/fig-thesis/convergence_laplace_one_ellipse_logy.eps', bbox_inches='tight')
+  # ax = fig.add_subplot(111)
+  # pnt = ((rng[-1] ** 0.8), (err[-1]))
+  # # plt.plot(pnt[0], pnt[1],'kp')
+  # ax.annotate('error = %s' % np.float32(err[-1]), xy=pnt , textcoords='data')
+  # plt.xlabel('n')
+  # plt.ylabel('log(err)')
+  # plt.title('Ellipse')
+  # plt.show(block=False)
+  # if savefig:
+  #   plt.savefig('runs/fig-thesis/convergence_laplace_one_ellipse_logy.eps', bbox_inches='tight')
 
-  ###############################
-  rng, err = total(int(n_ex / 2) * 2, gm.sg_one_kite)
-  fig = test_plots.plot_loglogscale(rng, err)
-  ax = fig.add_subplot(111)
-  pnt = ((rng[-1] ** 0.8), (err[-1]))
-  # plt.plot(pnt[0], pnt[1],'kp')
-  ax.annotate('error = %s' % np.float32(err[-1]), xy=pnt , textcoords='data')
-  plt.xlabel('log(n)')
-  plt.ylabel('log(err)')
-  plt.title('Kite')
-  plt.show(block=False)
-  if savefig:
-    plt.savefig('runs/fig-thesis/convergence_laplace_one_kite.eps', bbox_inches='tight')
-  #############################
-  rng, err = total(int(n_ex / 2) * 2 + 1, gm.sg_one_drop)
-  fig = test_plots.plot_loglogscale(rng, err)
-  ax = fig.add_subplot(111)
-  pnt = ((rng[-1] ** 0.8), (err[-1]))
-  # plt.plot(pnt[0], pnt[1],'kp')
-  ax.annotate('error = %s' % np.float32(err[-1]), xy=pnt , textcoords='data')
-  plt.xlabel('log(n)')
-  plt.ylabel('log(err)')
-  plt.title('Drop')
-  plt.show(block=False)
-  if savefig:
-    plt.savefig('runs/fig-thesis/convergence_laplace_one_drop.eps', bbox_inches='tight')
+  # ###############################
+  # rng, err = total(int(n_ex / 2) * 2, gm.sg_one_kite)
+  # fig = test_plots.plot_loglogscale(rng, err)
+  # ax = fig.add_subplot(111)
+  # pnt = ((rng[-1] ** 0.8), (err[-1]))
+  # # plt.plot(pnt[0], pnt[1],'kp')
+  # ax.annotate('error = %s' % np.float32(err[-1]), xy=pnt , textcoords='data')
+  # plt.xlabel('log(n)')
+  # plt.ylabel('log(err)')
+  # plt.title('Kite')
+  # plt.show(block=False)
+  # if savefig:
+  #   plt.savefig('runs/fig-thesis/convergence_laplace_one_kite.eps', bbox_inches='tight')
+  # #############################
+  # rng, err = total(int(n_ex / 2) * 2 + 1, gm.sg_one_drop)
+  # fig = test_plots.plot_loglogscale(rng, err)
+  # ax = fig.add_subplot(111)
+  # pnt = ((rng[-1] ** 0.8), (err[-1]))
+  # # plt.plot(pnt[0], pnt[1],'kp')
+  # ax.annotate('error = %s' % np.float32(err[-1]), xy=pnt , textcoords='data')
+  # plt.xlabel('log(n)')
+  # plt.ylabel('log(err)')
+  # plt.title('Drop')
+  # plt.show(block=False)
+  # if savefig:
+  #   plt.savefig('runs/fig-thesis/convergence_laplace_one_drop.eps', bbox_inches='tight')
   return
 
 

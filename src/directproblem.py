@@ -286,8 +286,8 @@ def mapNtoD00(l, g, s0):
     print('mapNtoD condition number= ', numpy.linalg.cond(np.array(Kp, float)))
     print('mapNtoD determninant= ', numpy.linalg.det(np.array(Kp, float)))
   phi = linalg.lstsq(Kp, g)[0]
-  (lu, piv) = linalg.lu_factor(Kp)
-  phi = linalg.lu_solve((lu, piv), g)
+  # (lu, piv) = linalg.lu_factor(Kp)
+  # phi = linalg.lu_solve((lu, piv), g)
   return phi
 
 def mapNtoDD0(lo, ld, g, c, s0):
@@ -359,8 +359,8 @@ def mapNtoDD_correctedinfirst(lo, ld, g, c, s0):
   gz[0] = - mean_reduced
 
   phi = linalg.lstsq(Ks, gz)[0]
-  (lu, piv) = linalg.lu_factor(Ks)
-  phi = linalg.lu_solve((lu, piv), gz)
+  # (lu, piv) = linalg.lu_factor(Ks)
+  # phi = linalg.lu_solve((lu, piv), gz)
   return phi
 ####################################
 def mapNtoD0_left(l, g, s0=()):
@@ -370,14 +370,14 @@ def mapNtoD0_left(l, g, s0=()):
 
   Kps = l.SL.T.dot(Kp)
   gs = l.SL.T.dot(g)
-  if setups.mapNtoD_left == False:
-    Kps = Kp
-    gs = g
+  # if setups.mapNtoD_left == False:
+  #   Kps = Kp
+  #   gs = g
 
-  if setups.mapNtoD_s0_firstline:
-    gs[0] = 0
-    Kps[0, :] = l.w
-    pass
+  # if setups.mapNtoD_s0_firstline:
+  #   gs[0] = 0
+  #   Kps[0, :] = l.w
+  #   pass
   
   phi = linalg.lstsq(Kps, gs)[0]
 
@@ -412,11 +412,11 @@ def mapNtoDD_left(lo, ld, g, c, s0=()):
       nt = g.shape[1]
       gz= np.concatenate(( g, np.zeros((nd, nt)) ))
 
-  if setups.mapNtoD_s0_firstline: # generally False
-    gz[0] = 0
-    Ks[0, :no] = lo.w
-    Ks[0, no:] = 0
-    pass
+  # if setups.mapNtoD_s0_firstline: # generally False
+  #   gz[0] = 0
+  #   Ks[0, :no] = lo.w
+  #   Ks[0, no:] = 0
+  #   pass
 
   phi = linalg.lstsq(Ks, gz)[0]
   # (lu, piv) = linalg.lu_factor(Ks)
@@ -430,9 +430,9 @@ def mapNtoD0_left_s0(l, g, s0=()):
 
   Kps = l.SL.T.dot(Kp)
   gs = l.SL.T.dot(g)
-  if setups.mapNtoD_left == False:
-    Kps = Kp
-    gs = g
+  # if setups.mapNtoD_left == False:
+  #   Kps = Kp
+  #   gs = g
 
   gs[0] = 0
   Kps[0, :] = l.s0

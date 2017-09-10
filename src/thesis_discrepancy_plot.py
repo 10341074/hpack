@@ -2,7 +2,7 @@ from src import *
 import test_plots
 import dill
 
-savefig = True
+savefig = False
 
 def plot_compare(filename = (), prename = (), name = () ):
   n = 1
@@ -19,7 +19,7 @@ def plot_compare(filename = (), prename = (), name = () ):
       plt.colorbar()
       plt.axis('equal')
       plt.axis('square')
-      # plt.show(block=False)
+      plt.show(block=False)
       if savefig:
         plt.savefig('runs/fig-thesis/%s_lsm_%s%s_it_alpha_%s.eps' %(prename, name, k, it_alpha_fixed_ratio), bbox_inches='tight')
     ##########################################################################################################################
@@ -33,7 +33,7 @@ def plot_compare(filename = (), prename = (), name = () ):
     plt.colorbar()
     plt.axis('equal')
     plt.axis('square')
-    # plt.show(block=False)
+    plt.show(block=False)
     if savefig:
       plt.savefig('runs/fig-thesis/%s_lsm_%s%s_alpha_it_alpha_%s.eps' %(prename, name, k, it_alpha_fixed_ratio), bbox_inches='tight')
     ###########################################################################################################################
@@ -51,7 +51,7 @@ def plot_compare(filename = (), prename = (), name = () ):
     p.ld.plot(lw = 0.8, ms = 1)
     plt.axis('equal')
     plt.axis('square')
-    # plt.show(block=False)
+    plt.show(block=False)
     if savefig:
       plt.savefig('runs/fig-thesis/%s_fm_%s%s.eps' %(prename, name, k), bbox_inches='tight')
   return
@@ -69,13 +69,13 @@ def plot_alpha(filename = (), prename = (), name = () ):
   plt.colorbar()
   plt.axis('equal')
   plt.axis('square')
-  # plt.show(block=False)
+  plt.show(block=False)
   if savefig:
     plt.savefig('runs/fig-thesis/%s_lsm_%s%s_alpha_it_alpha_%s.eps' %(prename, name, k, it_alpha_fixed_ratio), bbox_inches='tight')
 
 if __name__ == "__main__":
-  # plot_compare('runs/dill/dill_two_ellipse_delta1e-6.pkl', 'discrepancy', 'two_ellipse_delta1e-6')
-  # plot_compare('runs/dill/dill_three_ellipse_delta1e-6.pkl', 'discrepancy', 'three_ellipse_delta1e-6')
-  plot_alpha('runs/dill/dill_two_ellipse_delta1e-6_app.pkl', 'discrepancy', 'two_ellipse_delta1e-6')
-  plot_alpha('runs/dill/dill_three_ellipse_delta1e-6_app.pkl', 'discrepancy', 'three_ellipse_delta1e-6')
+  plot_compare('runs/dill/dill_two_ellipse_delta1e-6.pkl', 'discrepancy', 'two_ellipse_delta1e-6')
+  plot_compare('runs/dill/dill_three_ellipse_delta1e-6.pkl', 'discrepancy', 'three_ellipse_delta1e-6')
+  # plot_alpha('runs/dill/dill_two_ellipse_delta1e-6_app.pkl', 'discrepancy', 'two_ellipse_delta1e-6')
+  # plot_alpha('runs/dill/dill_three_ellipse_delta1e-6_app.pkl', 'discrepancy', 'three_ellipse_delta1e-6')
   end = input('Press enter')
