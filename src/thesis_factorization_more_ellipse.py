@@ -110,13 +110,21 @@ def eigplot(wsorted, m0, linreg, prename = (), name = ()):
   fig = plt.figure()
   x = np.arange(m0)
   plt.plot(x, linreg.intercept + linreg.slope*x, 'b-', ms=0.2)
+  ax = fig.add_subplot(111)
+  ######
   temp_y = np.array([1, 1]) * np.log(wsorted[0][int(29)])
   plt.plot([0, len(wsorted[0])], temp_y, 'k:', ms=0.2)
+  pnt = (100, temp_y[0] + 0.15)
+  ax.annotate('m = 30', xy=pnt , textcoords='data')
   temp_y = np.array([1, 1]) * np.log(wsorted[0][int(39)])
   plt.plot([0, len(wsorted[0])], temp_y, 'k:', ms=0.2)
+  pnt = (100, temp_y[0] + 0.15)
+  ax.annotate('m = 40', xy=pnt , textcoords='data')
+
   plt.plot(range(len(wsorted[0])), np.log(wsorted[0]), 'ko', ms=2, markeredgewidth=1, markeredgecolor='k',
            markerfacecolor='None')
-  plt.show(block=False)  
+
+  plt.show(block=False)
   if savefig:
     plt.savefig('runs/fig-thesis/%s_fm_%s_m0%s_%s.eps' %(prename, name, m0, "eig"), bbox_inches='tight')
   return

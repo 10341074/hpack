@@ -53,6 +53,7 @@ def example(index = 'one_ellipse', nsb = 80, nso = 100, nsd = 40, rb = 5, ro = 3
   switcher_d = {
     'one_ellipse' : one_ellipse,
     'two_ellipse' : two_ellipse,
+    'three_ellipse' : three_ellipse,
     'one_kite' : one_kite,
     'one_drop' : one_drop,
     'one_triangle' : one_triangle

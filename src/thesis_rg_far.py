@@ -28,13 +28,13 @@ def first_compare(ld = (), prename = (), name = () ):
     else:
       p.ld = ld
     ###################################################################################################################
-    p.sb = sg.Segment(120, f_inargs = (sh.circle, (0, 6)), quad='ps')
-    p.so = sg.Segment(120, f_inargs = (sh.circle, (0, 5)), quad='ps')
+    p.sb = sg.Segment(120, f_inargs = (sh.circle, (0, 10)), quad='ps')
+    p.so = sg.Segment(120, f_inargs = (sh.circle, (0, 8)), quad='ps')
     p.meshgrid((-3, 3, 80))
     ############################################
     p.noiselevel = 0
     p.alpha = 1e-10
-    p.theta = np.pi/4
+    p.theta = 0
     p.rg_solver()
     p.rg_ipb()
     #############################################
@@ -47,10 +47,10 @@ def first_compare(ld = (), prename = (), name = () ):
     plt.axis('square')
     plt.show(block=False)
     if savefig:
-      plt.savefig('runs/fig-thesis/%s_rg_far_%s%s_alpha%s_no%snd%snb%s_radius%s.eps' %(prename, name, k, p.alpha, no, nd, p.sb.n, 4), bbox_inches='tight')
+      plt.savefig('runs/fig-thesis/%s_rg_far_%s%s_alpha%s_no%snd%snb%s_radius%s_theta%s.eps' %(prename, name, k, p.alpha, no, nd, p.sb.n, 10, p.theta), bbox_inches='tight')
     ###################################################################################################################
     p.sb = sg.Segment(120, f_inargs = (sh.circle, (0, 10)), quad='ps')
-    p.so = sg.Segment(120, f_inargs = (sh.circle, (0, 9)), quad='ps')
+    p.so = sg.Segment(120, f_inargs = (sh.circle, (0, 8)), quad='ps')
     
     p.meshgrid((-3, 3, 80))
     ############################################
@@ -70,7 +70,7 @@ def first_compare(ld = (), prename = (), name = () ):
     plt.show(block=False)
     if savefig:
       print('sii')
-      plt.savefig('runs/fig-thesis/%s_rg_far_%s%s_alpha%s_no%snd%snb%s_radius%s.eps' %(prename, name, k, p.alpha, no, nd, p.sb.n, 6), bbox_inches='tight')
+      plt.savefig('runs/fig-thesis/%s_rg_far_%s%s_alpha%s_no%snd%snb%s_radius%s_theta%s.eps' %(prename, name, k, p.alpha, no, nd, p.sb.n, 10, p.theta), bbox_inches='tight')
     return
 
 #######################

@@ -604,6 +604,7 @@ def ieig(w, v, wsorted, m0, linreg, isolver, pointstest, LL0, so, theta=0):
       chi[k] = 1
     else:
       chi[k] = 0
+    # print(pointstest.x[k], chi[k])
     # ninv[k] = np.exp(rhs_linreg.slope) - np.exp(linreg.slope)
   return chi
 
@@ -637,3 +638,45 @@ def test_one(isolver, pointstest, so, alpha):
       time.sleep(0.005)
   return
 # print(np.finfo(np.float256).eps)
+############################################
+def testieig(w, v, wsorted, m0, linreg, isolver, pointstest, LL0, so, theta=0):
+  # transposition
+  # windt = list(map(list, zip(*wind)))
+  # initialization
+  chi = np.empty(len(pointstest.x), float)
+  # initialize rhs scalar product
+  weigths = ()
+  if len(w) == so.n:
+    print('check: rhs components = n')
+    weigths = so.w
+  elif len(w) == so.n - 1:
+    print('check: rhs componenents = n - 1')
+    weigths = np.ones(so.n - 1)
+  else:
+    print('ERROR: some error in length of w')
+  # loop
+  for k in range(len(pointstest.x)):
+    isolver.RHS_args['z0'] = pointstest.x[k]
+    RHS = isolver.RHS_fcom(isolver.RHS_args)
+    if setups.fact_L_trigbasis:
+      BT_red = so.BT[:, :m0]
+      RHS = BT_red.T.dot(RHS) 
+    rhs_coeffs = RHS.T.dot(v[:, wsorted[1][0:m0]])
+    # rhs_coeffs = RHS.T.dot(np.diagflat(weigths).dot(v[:, wsorted[1][0:m0]]))
+    # linear regression
+    x = np.arange(setups.fact_w_discard, m0 - setups.fact_w_discard)
+    yk = rhs_coeffs[setups.fact_w_discard : m0 - setups.fact_w_discard]
+    if setups.fact_meaned:
+      x = x[: int(x.size / 2)]
+      yk = np.concatenate(( [yk[0]], yk[1:-1:2] + yk[2:-1:2] ))
+    rhs_y = np.array(np.log(abs(yk)**2), float) # needed to avoid Type error in Python (bug?)
+    print(rhs_y)
+    rhs_linreg = scipy.stats.linregress(x, rhs_y)
+
+    if rhs_linreg.slope < linreg.slope:
+      chi[k] = 1
+    else:
+      chi[k] = 0
+    # ninv[k] = np.exp(rhs_linreg.slope) - np.exp(linreg.slope)
+  print(rhs_y)
+  return chi, rhs_y, rhs_linreg
