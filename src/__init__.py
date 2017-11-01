@@ -21,6 +21,7 @@ import problem as pb
 import linfunc as linf
 import lintype as lint
 
+import basis as bs
 
 import tools as tls
 import setups

@@ -37,7 +37,10 @@ def plot(x, y, vv, t='im', fig=[], show=1):
   elif t == 'im':
     fig = plt.imshow(np.array(v[::-1], 'float64'), extent = (x[0], x[-1], y[0], y[-1]))
     plt.colorbar()
-  elif t == 'srf':
+  elif t == 'srf' or t == 'maxsrf':
+    if t == 'maxsrf':
+      mng = plt.get_current_fig_manager()
+      mng.resize(*mng.window.maxsize())
     ax = fig.gca(projection='3d')
     xx, yy = np.meshgrid(x, y, sparse=True)
     surf = ax.plot_surface(xx, yy, v, cmap=cm.coolwarm)
