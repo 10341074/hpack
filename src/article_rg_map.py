@@ -103,12 +103,12 @@ def example():
   p = m.EIT()
   p.domain()
   p.meshgrid((-6,6,40))
-  p.z = computeLp(p.ld, p.sb, ly.phi_n(z0=7, z=p.sb.x, n=p.so.nx), 1.02, p.p)
+  p.z = computeLp(p.ld, p.sb, ly.phi_n(z0=7, z=p.sb.x, n=p.sb.nx), 1.02, p.p)
   plot.plot(p.x, p.y, p.z)
   p.plot_domain()
   #############################################################################
   # unu1 = computeL0p(p.sb, ly.phi_n(z0=7, z=p.sb.x, n=p.so.nx), p.so)
-  unu1 = computeLp(p.ld, p.sb, ly.phi_n(z0=7, z=p.sb.x, n=p.so.nx), 1.02, p.so)
+  unu1 = computeLp(p.ld, p.sb, ly.phi_n(z0=7, z=p.sb.x, n=p.sb.nx), 1.02, p.so)
   unu2 = ly.phi(z0=7, z=p.so.x)
   plt.figure()
   print(p.so.w.dot(unu1)); unu1 = unu1 - sum(p.so.w * unu1) / sum(p.so.w)
@@ -123,15 +123,24 @@ def v_p_ex(z):
   return (3 * z.real**2 - 3 * z.imag**2) + 1j * ( - 6 * z.real * z.imag)
 def check():
   p = m.EIT()
-  p.domain()
+  p.c = 1.02
+  p.domain(nsb=150)
   p.meshgrid((-6,6,40))
   r1 = np.empty(p.sb.n)
   phi = ly.scalar(v_p_ex(p.so.x), p.so.nx)
+  #
+  allrhs, allpsi = ipb.computeallpsi(p.ld, p.sb, p.c)
+  # dpb.plotdpb(ld, sb.x[0], (-2, 2, 100), psi = allpsi[:,0], t='im')
+  R, U, U_nu = ipb.computeR(allpsi, p.ld, p.so, p.sb)
+  #
+  Lphi = ipb.computeLL0(p.ld, p.so, phi, 1.02)
   for k, z0 in enumerate(p.sb.x):
-    unu2 = ly.phi(z0=z0, z=p.so.x)
-    unu2 = unu2 - sum(p.so.w * unu2) / sum(p.so.w)
-    Lphi = ipb.computeLL0(p.ld, p.so, phi, 1.02)
-    r1[k] = sum(p.so.w * unu2 * Lphi)
+    # unu2 = ly.phi(z0=z0, z=p.so.x)
+    # unu2 = unu2 - sum(p.so.w * unu2) / sum(p.so.w)
+    # unu1 = computeLp(p.ld, p.sb, ly.phi_n(z0=z0, z=p.sb.x, n=p.sb.nx), 1.02, p.so)
+    unu = U_nu[k, :]
+    r1[k] = sum(unu * Lphi)
+    # r1[k] = sum(p.so.w * unu * Lphi)
     print(z0)
   p.c = 1.02
   print(p.c)
@@ -140,16 +149,94 @@ def check():
   allrhs, allpsi = ipb.computeallpsi(p.ld, p.sb, p.c)
   # dpb.plotdpb(ld, sb.x[0], (-2, 2, 100), psi = allpsi[:,0], t='im')
   R, U, U_nu = ipb.computeR(allpsi, p.ld, p.so, p.sb)
-  print("diff matrr = ", tls.mat_max(abs(R- p.K)))
+  print("diff matrr = ", tls.mat_max(abs(R - p.K)))
   #
-  r2 = p.K.dot(phi)
+  dens = dpb.mapNtoD0(p.sb, ly.scalar(v_p_ex(p.sb.x), p.sb.nx), p.sb.s0) 
+  r2 = p.K.dot(dens)
   plt.figure()
   plt.plot(r1,'+-')
   plt.plot(r2,'+-')
   plt.show(block=False)
+
+  plt.figure()
+  plt.plot(phi,'+-')
+  plt.plot(ly.layerpotSD(s=p.sb, t=p.so).dot(dens))
+  plt.title('deriv')
+  plt.show(block=False)
+
+  
+  plt.figure()
+  plt.plot(ly.layerpotS(s=p.sb, t=p.so).dot(dens), '*-')
+  plt.plot(v_ex(p.so.x))
+  # plt.plot(ly.layerpotSD(s=p.sb, t=p.so).dot(dens), '*-')
+  # plt.plot(phi)
+  plt.show(block=False)
+
+
+def check2():
+  p = m.EIT()
+  p.c = 1.02
+  p.domain(nsb=150)
+  p.meshgrid((-6,6,40))
+  r1 = np.empty(p.sb.n)
+  f = ly.scalar(v_p_ex(p.so.x), p.so.nx)
+  ##
+  allrhs, allpsi = ipb.computeallpsi(p.ld, p.sb, p.c)
+  R, U, U_nu = ipb.computeR(allpsi, p.ld, p.so, p.sb)
+  ##
+  rS, AS = ly.r_S(s=p.sb, t=p.so)
+  AU = AS + ly.layerpotS(s=p.ld, t=p.so).dot(allpsi)
+  rSD, cosphiSD, ASD = ly.r_SD(s=p.sb, t=p.so)
+  AU_nu = ASD + ly.layerpotSD(s=p.ld, t=p.so).dot(allpsi)
+  # plot.plot(p.x, p.y, p.z)
+
+  # density on B for v representation
+  dens = dpb.mapNtoD0(p.sb, ly.scalar(v_p_ex(p.sb.x), p.sb.nx), p.sb.s0)
+  plt.figure()
+  plt.plot(ly.scalar(v_p_ex(p.so.x), p.so.nx),'*-')
+  plt.plot(ly.layerpotSD(s=p.sb, t=p.so).dot(dens))
+  plt.title('Derivatives')
+  plt.show(block=False)
+
+  # final check
+  p.rg_solver()
+  r2 = p.K.dot(dens)
+  r1 = AU_nu.T.dot(np.diag(p.so.w)).dot(ipb.computeLL0(p.ld, p.so, f, 1.02))
+  plt.figure()
+  plt.plot(r1,'+-')
+  plt.plot(r2,'+-')
+  plt.title('compare')
+  plt.show(block=False)
+
+def init():
+  p = m.EIT()
+  p.c = 2
+  p.domain(nsb=150)
+  p.meshgrid((-3,3,40))
+  # p.domain(nsb=150)
+  # p.sb = sg.Segment(80, f_inargs = (sh.circle, (0, 6)), quad='ps')
+  p.alpha = 1e-6
+  # p.meshgrid()
+  return p
+def rg(p=()):
+  p = init()
+  f = ly.scalar(v_p_ex(p.so.x), p.so.nx)
+  dens = dpb.mapNtoD0(p.sb, ly.scalar(v_p_ex(p.sb.x), p.sb.nx), p.sb.s0)
+  p.rg_solver()
+  r2 = p.K.dot(dens)
+  plt.plot(r2,'+-')
+  plt.title('compare')
+  plt.show(block=False)
+
+  print("alpha = ", p.alpha, ", c = ", p.c)
+  p.rg_ipb()
+  p.plot()
+
   
   
 if __name__ == "__main__":
-  example()
-  check()
+  # example()
+  # check()
+  # check2()
+  rg()
   inp = input("Press")

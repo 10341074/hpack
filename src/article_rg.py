@@ -101,13 +101,12 @@ def test_ipb(p=()):
     print("imported p")
   p.domain()
   p.sb = sg.Segment(80, f_inargs = (sh.circle, (0, 6)), quad='ps')
-  p.alpha = 1e-4
-  p.meshgrid()
+  p.alpha = 1e-15
+  p.meshgrid((-2, 2, 60))
   p.theta = 0
   p.rg_solver()
   p.rg_ipb()
   p.plot()
-  inp = input('Press')
   p.solver()
   p.ipb()
   p.plot()

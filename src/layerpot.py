@@ -79,6 +79,46 @@ def circulant_T(a=[]):
   A = A.T
   return A
 
+def r_S(k=0, s=[], t=[], nodiag=0):
+  slf = 0
+  if t == []:
+    slf = 1
+    t = s
+  M = len(t.x)
+  N = len(s.x)
+
+  d = np.array([t.x for k in range(N)])
+  d = d.T
+  d = d - np.array([s.x for k in range(M)])
+  r = abs(d)
+  if slf or nodiag:
+    r[np.diag_indices(N)] = symmflagval
+
+  A = fundsol(r, k)
+  return (r, A)
+
+def r_SD(k=0, s=[], t=[], o=[]):
+  slf = 0
+  if t == []:
+    slf = 1
+    t = s
+  M = len(t.x);
+  N = len(s.x);
+  
+  d = np.array([t.x for k in range(N)])
+  d = d.T
+  d = d - np.array([s.x for k in range(M)])
+  r = abs(d)
+  if slf:
+    r[np.diag_indices(N)] = symmflagval
+
+  n = np.array([t.nx for k in range(N)])
+  n = n.T
+  cosphi = - np.real(np.conj(n) * d) / r;
+  
+  A = fundsol_deriv(r, cosphi, k)
+  return (r, cosphi, A)
+
 def layerpotS(k=0, s=[], t=[], o=[], nodiag=0):
   slf = 0
   if t == []:
