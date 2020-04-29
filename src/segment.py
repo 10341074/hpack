@@ -1,11 +1,8 @@
-#!../../venv/bin/python
 from numpy import pi, sin, cos
 import matplotlib.pyplot as plt
 import numpy as np
 
-from __types__ import *
-float = float_t
-# print np.dtype(float)
+float = np.float128
 
 import plot
 import gradedmesh as graded
@@ -14,44 +11,6 @@ import layerpot as ly
 
 import linfunc as linf
 
-#from shapes import * # to be subs with import shapes
-# def cZ(t, c = 0, a = 1, b = 1):
-#   return complex(c + a * cos(2 * pi * t) + 1j * b * sin(2 * pi * t))
-# def cZp(t, c = 0, a = 1, b = 1):
-#   return complex(-2 * pi * a * sin(2 * pi * t) + 1j * 2 * pi * b * cos(2 * pi * t))
-# def cZpp(t, c = 0, a = 1, b = 1):
-#   return complex(-2 * pi * 2 * pi * a * cos(2 * pi * t) - 1j * 2 * pi * 2 * pi * b * sin(2 * pi * t))
-
-# def sZ(t, p = 0, q = 1):
-#   return complex(p + t * (q - p))
-# def sZp(t, p = 0, q = 1):
-#   return complex(q - p)
-# def sZpp(t, p = 0, q = 1):
-#   return complex(0)
-
-# def kZ(t, a = []):
-#   return complex(cos(2*pi*t) + 0.65 * cos(2*2*pi*t) - 0.65 + 1j * 1.5 * sin(2*pi*t))
-# def kZp(t, a = []):
-#   return complex(-2*pi*sin(2*pi*t) - 2 * 0.65 * 2*pi*sin(2*2*pi*t) + 1j * 1.5 * 2*pi*cos(2*pi*t))
-# def kZpp(t, a = []):
-#   return complex(-2*pi*2*pi*cos(2*pi*t) - 2 * 2 * 0.65 * 2*pi*2*pi*cos(2*2*pi*t) - 1j * 1.5 * sin(2*pi*t))
-
-# def dZ(t, a = []):
-#   return 0.5*(1+1j)*complex(2.0 * sin(2 * pi * t / 2) - 1j * sin(2 * pi * t))
-# def dZp(t, a = []):
-#   return 0.5*(1+1j)*complex(2 * pi / 2 * 2.0 * cos(2 * pi * t / 2) - 2 * pi * 1j * cos(2 * pi * t))
-# def dZpp(t, a = []):
-#   return 0.5*(1+1j)*complex(-2 * pi * 2 * pi / 4 * 2.0 * sin(2 * pi * t / 2) + 2 * pi * 2 * pi * 1j * sin(2 * pi * t))
-
-# def circle(c = 0, r = 1):
-#   args=(c, r, r)
-#   return (cZ, cZp, cZpp, args)
-# def ellipse(c = 0, a = 1, b = 2):
-#   args=(c, a, b)
-#   return (cZ, cZp, cZpp, args)
-# def line(p = 0, q = 1):
-#   args=(p, q)
-#   return (sZ, sZp, sZpp, args)
 class Basis:
   def __init__(self, n, w=(), t='e'):
     # t='e' canonical, eye basis
@@ -77,17 +36,23 @@ def get_basis_trigonometric(n):
   
 class Segment:
   def __init__(self, n, Z_args=((), (), (), ()), f_inargs=((), ()), quad='ps', aff=(0, 1), sign=1, more=1):
-  # def __init__(self, n, Z_args=((), (), (), ()), f_inargs=((), ()), quad='ps', aff=(0, 1), Z=[], Zp=[], Zpp=[], args=[], f=[], inargs=[], periodic=False):
-    # 'p' periodic
-    # 'ps' periodic shift
-
-    # 'gf' graded full (with initial point)
-    # if Z == []: # line to be deleted
+    '''
+      This constructor initializes these fields
+      - x:     (complex = R^2) curve points
+      - dx:    (complex = R^2) curve derivative = tangent unit vect * speed
+      - speed: (complex = R^2) curve speed
+      Quadrature
+      - 'p':  periodic
+      - 'ps': periodic shifted, meaning all points are shifted by half step
+      - 'gf': graded full (with initial point)
+    '''
+    # in vecchie versioni c'era una diversa ipotesi di costruttore (vedi parametri)
     Z, Zp, Zpp, args = Z_args
-    # if f == []: # line to be deleted
     f, inargs = f_inargs
-    if f != [] and f!=():
+    if f !=() and f!=():
       (Z, Zp, Zpp, args) = f(*inargs)
+    # -------------------------------------------------------------------
+    # ------------------- Quadrature: t ---------------------------------
     if quad == 'p' or quad == 'ps':
       self.t = np.array([float(k) / n for k in range(n)], float)
       if quad == 'ps':
@@ -105,6 +70,7 @@ class Segment:
       self.a = graded.wp(2.0 * pi * temp_s)
     else:
       self.t = np.array([float(k) / (n - 1) for k in range(n)], float)
+    # -------------------------------------------------------------------
     # trapezoidal nodes
     self.n = n
     self.x = np.array([Z(t, *args, aff=aff) for t in self.t], np.cfloat)
@@ -116,6 +82,8 @@ class Segment:
     self.ddx = np.array([Zpp(t, *args, aff=aff) for t in self.t], np.cfloat)    
     # s.kappa = -real(conj(-1i*dZdt).*s.Zpp(s.t)) ./ s.speed.^3; %curvature
     self.kappa = -np.real(np.conj(-1j * self.dx) * self.ddx) / (self.speed**3) # signed curvature
+    # -------------------------------------------------------------------
+    # ------------------- Quadrature: w ---------------------------------
     if quad == 'p' or quad == 'ps':
       self.w = np.array([sp / n for sp in self.speed], float)
     elif quad == 'gp' or quad=='g' or quad == 'gf':
@@ -132,6 +100,8 @@ class Segment:
       self.w = np.array([sp / (n-1) for sp in self.speed], float)
       self.w[0] = self.w[0] * 0.5
       self.w[-1] = self.w[-1] * 0.5
+    # -------------------------------------------------------------------
+    # -------------------------------------------------------------------
     # miscellaneous
     if more:
       K = ly.layerpotSD(s=self)
@@ -151,6 +121,8 @@ class Segment:
       # if f_inargs[0] == 'ellipse':
       self.name = f_inargs[0]
       self.params = f_inargs[1]
+    return # __init__
+  # ----------------------------------------------------------------------
   def contains(self, x):
     if self.name == sh.ellipse:
       f = (x - self.params[0]).real ** 2 / self.params[1] ** 2 + (x - self.params[0]).imag ** 2 / self.params[2] ** 2 - 1
@@ -159,20 +131,22 @@ class Segment:
       f = abs(x - self.params[0]) ** 2 -  self.params[1] ** 2
       out = 1 if f < 0 else 0
     return out
-  def plot(self, p=True, *args, **kargs):
+  def plot(self, p=True, *args, **kwargs):
     xx = [x.real for x in self.x]
     yy = [x.imag for x in self.x]
     if p:
       xx.append(xx[0])
       yy.append(yy[0])
-    plt.plot(xx, yy, 'k*-', **kargs)
+    if 'linewidth' not in kwargs and 'lw' not in kwargs: kwargs['linewidth'] = 0.5
+    if 'markersize' not in kwargs and 'ms' not in kwargs: kwargs['markersize'] = 0.5
+    plt.plot(xx, yy, 'k*-', **kwargs)
     plt.axis('equal')
-
+    return
+# =======================================================================================================================
 class Boundary:
   def __init__(self, pieces=[], more=0):
     self.pc = pieces
     self.s = pieces
-    # if reduced == 0:
     self.n = sum([len(pk.x) for pk in self.pc])
     self.x = np.array([z for p in pieces for z in p.x])
     self.nx = np.array([nx for p in pieces for nx in p.nx])
@@ -189,6 +163,7 @@ class Boundary:
 
     # # miscellaneous
     if more:
+      print("# Boundary.__init__ : more = 1")
       K = ly.layerpotSD(s=self)
       nu, s0 = linf.eigmaxpower(K)
       
@@ -256,13 +231,6 @@ def eval_layer(l, p, exp=[]):
   A = A.T
   v = A.dot(l.dns)
   return v
-
-# def Z(t):
-#    return complex(cos(2 * pi * t) + 1j * sin(2 * pi * t))
-# def Zp(t):
-#   return complex(2 * pi * cos(2 * pi * t) + 1j * 2 * pi * sin(2 * pi * t))
-# def Zpp(t):
-#   return complex(2 * pi * 2 * pi * cos(2 * pi * t) + 1j * 2 * pi * 2 * pi * sin(2 * pi * t))
 
 def poly(vx, n):
   nvx = len(vx)

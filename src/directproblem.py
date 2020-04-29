@@ -4,8 +4,6 @@ import scipy.linalg as linalg
 import numpy.linalg
 import scipy.sparse.linalg
 
-from __types__ import *
-
 import layerpot as ly
 import segment as sg
 import plot
@@ -13,25 +11,40 @@ import time
 
 import setups
 import linfunc as linf
-verbose = False
 
+import debug_globals as dbgg
+from debug import printname, printempty
+# ----------------------------------------------------------------------------
+verbose = True
+# ----------------------------------------------------------------------------
 # (K' + 0.5 * c(h) * I) psi = -phi_nu
-
+# ----------------------------------------------------------------------------
+def printname_dpb(func):
+  if verbose:
+    return printname(func, "dpb")
+  else:
+    return printempty(func)
+# ----------------------------------------------------------------------------
+@printname_dpb
 def directA(l, c): # to delete
   Kp = l.exp(0, l.b[0], [], [])
   A = Kp
   A[np.diag_indices(len(l.b[0].x))]=A[np.diag_indices(len(l.b[0].x))] + 0.5 * c
   return A
 
+@printname_dpb
 def directKpc(l, c):
   # Kp = l.exp(s=l.b[0])
   Kp = l.eval_self(exp=ly.layerpotSD)
   Kpc = Kp
   Kpc[np.diag_indices(l.n)] = Kpc[np.diag_indices(l.n)] + 0.5 * c
   if verbose:
-    print('directKpc condition number= ', numpy.linalg.cond(np.array(Kpc, float)))
+    print(dbgg.CYAN, end='')
+    print('  directKpc condition num = %.5e' %numpy.linalg.cond(np.array(Kpc, float)))
+    print(dbgg.RESET, end='')
   return Kpc
 
+@printname_dpb
 def directrhs(l, z0=()):
   if z0 == ():
     print('Error: z0 in directrhs')
@@ -45,10 +58,11 @@ def directrhs(l, z0=()):
   nx = l.nx
   r = abs(d)
   cosphi = ly.scalar(nx, d) / r
-  # rhs = - - ly.fundsol_deriv(r, cosphi, 0)
-  rhs = ly.fundsol_deriv(r, cosphi, 0)
+  # rhs = - - ly.fundsol_deriv_negate(r, cosphi, 0)
+  rhs = ly.fundsol_deriv_negate(r, cosphi, 0)
   return rhs
   
+@printname_dpb
 def directpb(l, c, z0, A_f=((), ()), rhs=[]):
   A, solutor = A_f
   if A == ():
@@ -60,6 +74,7 @@ def directpb(l, c, z0, A_f=((), ()), rhs=[]):
   psi = solutor(A, rhs)
   return psi
 
+@printname_dpb
 def plotdpb(l, z0, x1_x2_xn, y1_y2_yn=((), (), ()), psi=(), t='im', l2=()):
   x, y, pp = plot.meshgrid(x1_x2_xn, y1_y2_yn)
   lPsi = sg.Layer(b=l.b, exp=ly.layerpotS, dns=l.dns)
@@ -129,13 +144,21 @@ def plotdpb(l, z0, x1_x2_xn, y1_y2_yn=((), (), ()), psi=(), t='im', l2=()):
 #   # s.plot(p=True)
 #   plt.show(block=True)
   
+@printname_dpb
 def mapNtoD0(l, g, s0=()):
+  print("!! not revisioned !!")
+  print(g.shape)
+  # ---------------------------------------------------
+  # --- building matrix ---
   n = l.n
   Kp = ly.layerpotSD(s=l)
   Kp[np.diag_indices(n)] = Kp[np.diag_indices(n)] + 0.5
+  # ---------------------------------------------------
   if verbose:
-    print('mapNtoD condition number= ', numpy.linalg.cond(np.array(Kp, float)))
-    print('mapNtoD determninant= ', numpy.linalg.det(np.array(Kp, float)))
+    print(dbgg.CYAN, end='')
+    print('  condition num = %.5e' %numpy.linalg.cond(np.array(Kp, float)))
+    print('  determinant   = %.5e' %numpy.linalg.det(np.array(Kp, float)))
+    print(dbgg.RESET, end='')
   if s0 == ():
     s0 = np.ones(n)
   S = l.S
@@ -167,13 +190,17 @@ def mapNtoD0(l, g, s0=()):
     # phi1 = linalg.lstsq(Kps1, gs1)[0]
     phi = np.concatenate(( np.zeros((1, nt)), phi1))
   else:
-    print('Error dimensions for gs in mapNtoD0')
+    print(' Error: dimensions for gs in mapNtoD0')
   # phi2 = scipy.sparse.linalg.cg(Kps2, gs2)[0]
 
   # phi = linalg.solve(Kps, gs) # check error
   return S.dot(phi)
 
+@printname_dpb
 def mapNtoD(lo, ld, g, c, s0=()):
+  print("!! not revisioned !!")
+  # ---------------------------------------------------
+  # --- building matrix ---
   no = lo.n
   nd = ld.n
   Kpd = ly.layerpotSD(s=ld)
@@ -182,6 +209,7 @@ def mapNtoD(lo, ld, g, c, s0=()):
   Kpo[np.diag_indices(no)] = Kpo[np.diag_indices(no)] + 0.5
   Kd2o = ly.layerpotSD(s=ld, t=lo)
   Ko2d = ly.layerpotSD(s=lo, t=ld)
+  # ---------------------------------------------------
 
   if s0 == ():
     s0 = np.ones(no)
@@ -194,19 +222,21 @@ def mapNtoD(lo, ld, g, c, s0=()):
   Ks = np.concatenate((lo.SL.T.dot(row1), row2))
   # Ks = np.concatenate(( row1, row2 ))
   Ks1 = Ks[1::, 1::]
-
+  if verbose:
+    print('  not true matrix (to fix)')
+    print(dbgg.CYAN, end='')
+    print('  condition num = %.5e' %numpy.linalg.cond(np.array(Ks, float)))
+    print('  determinant   = %.5e' %numpy.linalg.det(np.array(Ks, float)))
+    print(dbgg.RESET, end='')
   (lu, piv) = linalg.lu_factor(Ks1)
   if g.ndim == 1:
     gs = np.concatenate((lo.SL.T.dot(g), np.zeros(nd)))
     # gs = np.concatenate(( g, np.zeros(nd) ))
     gs1 = gs[1::]
-    if verbose:
-      print('mapNtoD condition number= ', numpy.linalg.cond(np.array(Ks, float)))
-      print('mapNtoD determninant= ', numpy.linalg.det(np.array(Ks, float)))
     phi1 = linalg.lu_solve((lu, piv), gs1)
     if verbose:
-      print('residual = ', numpy.linalg.norm(Ks1.dot(phi1) - gs1))
-      print('residual2 = ', numpy.linalg.norm(row2[:, 1::].dot(phi1) - gs1[-nd::]))
+      print('  residual = ', numpy.linalg.norm(Ks1.dot(phi1) - gs1))
+      print('  residual2 = ', numpy.linalg.norm(row2[:, 1::].dot(phi1) - gs1[-nd::]))
     phi = np.concatenate(( [0], phi1 ))
   elif g.ndim == 2:
     nt = g.shape[1]
@@ -226,6 +256,7 @@ def mapNtoD(lo, ld, g, c, s0=()):
   return np.concatenate((S.dot(phi[0:no]), phi[no::]))
 
     
+@printname_dpb
 def mapNtoDdiff(lo, ld, g, c, s0=()):
   no = lo.n
   nd = ld.n
@@ -254,7 +285,7 @@ def mapNtoDdiff(lo, ld, g, c, s0=()):
     gs = np.concatenate(( np.zeros(no), - g ))
     gs1 = gs[1::]
     if verbose:
-      print('mapNtoD condition number= ', numpy.linalg.cond(np.array(Ks, float)))
+      print('mapNtoD condition num = %.5e' %numpy.linalg.cond(np.array(Ks, float)))
       print('mapNtoD determninant= ', numpy.linalg.det(np.array(Ks, float)))
     phi1 = linalg.lu_solve((lu, piv), gs1)
     if verbose:
@@ -278,21 +309,37 @@ def mapNtoDdiff(lo, ld, g, c, s0=()):
     print('Error dimensions for gs1 in mapNtoD')
   return np.concatenate((S.dot(phi[0:no]), phi[no::]))
 #######################################################################
-def mapNtoD00(l, g, s0):
+@printname_dpb
+def mapNtoD00(l, g, s0=()):
+  '''
+  This function computes interior laplace problem with neumann data
+    - l: segment or boundary of the region where there are data
+    - g: neumann data
+
+      (Kp + 0.5 I) * phi = g 
+  '''
   n = l.n
+  # --- matrix ---
   Kp = ly.layerpotSD(s=l)
   Kp[np.diag_indices(n)] = Kp[np.diag_indices(n)] + 0.5
   if verbose:
-    print('mapNtoD condition number= ', numpy.linalg.cond(np.array(Kp, float)))
-    print('mapNtoD determninant= ', numpy.linalg.det(np.array(Kp, float)))
+    print(dbgg.CYAN, end='')
+    print('  condition num = %.5e' %numpy.linalg.cond(np.array(Kp, float)))
+    print('  determinant   = %.5e' %numpy.linalg.det(np.array(Kp, float)))
+    print(dbgg.RESET, end='')
+  
+  # --- rhs ---
+  # --- linear system resolution : (Kp + 0.5 I) * phi = g ---
   phi = linalg.lstsq(Kp, g)[0]
   # (lu, piv) = linalg.lu_factor(Kp)
   # phi = linalg.lu_solve((lu, piv), g)
   return phi
 
+@printname_dpb
 def mapNtoDD0(lo, ld, g, c, s0):
   no = lo.n
   nd = ld.n
+  # --- matrix: shape = (lo.n + ld.n, lo.n + ld.n) ---
   Kpd = ly.layerpotSD(s=ld)
   Kpo = ly.layerpotSD(s=lo)
   Kpd[np.diag_indices(nd)] = Kpd[np.diag_indices(nd)] + 0.5 * c
@@ -304,33 +351,52 @@ def mapNtoDD0(lo, ld, g, c, s0):
   row2 = np.concatenate((Ko2d.T, Kpd.T)).T
   Ks = np.concatenate((row1, row2))
   if verbose:
-    print('mapNtoD condition number= ', numpy.linalg.cond(np.array(Ks, float)))
-    print('mapNtoD determninant= ', numpy.linalg.det(np.array(Ks, float)))
+    print(dbgg.CYAN, end='')
+    print('  condition num = %.5e' %numpy.linalg.cond(np.array(Ks, float)))
+    print('  determninant= ', numpy.linalg.det(np.array(Ks, float)))
+    print(dbgg.RESET, end='')
+
+  # --- rhs: [g, 0] with shape = (lo.n + ld.n) ---
   if g.ndim == 1:
     gz = np.concatenate((g, np.zeros(nd)))
   elif g.ndim == 2:
     nt = g.shape[1]
     gz = np.concatenate(( g, np.zeros((nd, nt)) ))
+  # --- linear system resolution : () * phi = g ---
   phi = linalg.lstsq(Ks, gz)[0]
   return phi
 ##################################################################################
+@printname_dpb
 def mapNtoD0_correctedinfirst(l, g, s0=()):
+  '''
+  This function computes interior laplace problem with neumann data
+    - l: segment or boundary of the region where there are data
+    - g: neumann data
+
+      (Kp + 0.5 I) * phi = g 
+  '''
   n = l.n
+  # --- matrix ---
   Kp = ly.layerpotSD(s=l)
   Kp[np.diag_indices(n)] = Kp[np.diag_indices(n)] + 0.5
   if verbose:
-    print('mapNtoD condition number= ', numpy.linalg.cond(np.array(Kp, float)))
-    print('mapNtoD determninant= ', numpy.linalg.det(np.array(Kp, float)))
+    print(dbgg.CYAN, end='')
+    print('  condition num = %.5e' %numpy.linalg.cond(np.array(Kp, float)))
+    print('  determinant   = %.5e' %numpy.linalg.det(np.array(Kp, float)))
+    print(dbgg.RESET, end='')
 
+  # --- rhs ---
   mean_reduced = l.w[1:].dot(g[1:]) / l.w[0]
   g[0] = - mean_reduced
 
+  # --- linear system resolution : (Kp + 0.5 I) * phi = g ---
   phi = linalg.lstsq(Kp, g)[0]
+  print("  g ndim =", g.shape)
   if verbose and g.ndim == 1:
-    print('residual', max(abs(np.array(Kp.dot(phi) - g))))
-
+    print('  residual', max(abs(np.array(Kp.dot(phi) - g))))
   return phi
 
+@printname_dpb
 def mapNtoDD_correctedinfirst(lo, ld, g, c, s0):
   no = lo.n
   nd = ld.n
@@ -346,7 +412,7 @@ def mapNtoDD_correctedinfirst(lo, ld, g, c, s0):
   Ks = np.concatenate((row1, row2))
 
   if verbose:
-    print('mapNtoD condition number= ', numpy.linalg.cond(np.array(Ks, float)))
+    print('mapNtoD condition num = %.5e' %numpy.linalg.cond(np.array(Ks, float)))
     print('mapNtoD determninant= ', numpy.linalg.det(np.array(Ks, float)))
 
   if g.ndim == 1:
@@ -363,28 +429,37 @@ def mapNtoDD_correctedinfirst(lo, ld, g, c, s0):
   # phi = linalg.lu_solve((lu, piv), gz)
   return phi
 ####################################
+@printname_dpb
 def mapNtoD0_left(l, g, s0=()):
+  '''
+  This function computes interior laplace problem with neumann data
+    - l: segment or boundary of the region where there are data
+    - g: neumann data
+    
+      (Kp + 0.5 I) * phi = g
+  '''
   n = l.n
+  # --- matrix ---
   Kp = ly.layerpotSD(s=l)
   Kp[np.diag_indices(n)] = Kp[np.diag_indices(n)] + 0.5
+  if verbose:
+    print(dbgg.CYAN, end='')
+    print('  condition num = %.5e' %numpy.linalg.cond(np.array(Kp, float)))
+    print('  determinant   = %.5e' %numpy.linalg.det(np.array(Kp, float)))
+    print(dbgg.RESET, end='')
 
   Kps = l.SL.T.dot(Kp)
+  # --- rhs ---
   gs = l.SL.T.dot(g)
-  # if setups.mapNtoD_left == False:
-  #   Kps = Kp
-  #   gs = g
-
-  # if setups.mapNtoD_s0_firstline:
-  #   gs[0] = 0
-  #   Kps[0, :] = l.w
-  #   pass
   
+  # --- linear system resolution : (Kp + 0.5 I) * phi = g ---
   phi = linalg.lstsq(Kps, gs)[0]
-
+  print("  g ndim =", gs.shape)
   if verbose and gs.ndim == 1:
-    print('mapNtoD0_left: residual', max(abs(np.array(Kps.dot(phi) - gs))))
+    print('  residual', max(abs(np.array(Kps.dot(phi) - gs))))
   return phi
 
+@printname_dpb
 def mapNtoDD_left(lo, ld, g, c, s0=()):
   no = lo.n
   nd = ld.n
@@ -423,26 +498,40 @@ def mapNtoDD_left(lo, ld, g, c, s0=()):
   # phi = linalg.lu_solve((lu, piv), gz)  
   return phi
 ##################################################################
+@printname_dpb
 def mapNtoD0_left_s0(l, g, s0=()):
+  '''
+  This function computes interior laplace problem with neumann data
+    - l: segment or boundary of the region where there are data
+    - g: neumann data
+    
+      (Kp + 0.5 I) * phi = g
+  '''
   n = l.n
+  # --- matrix ---
   Kp = ly.layerpotSD(s=l)
   Kp[np.diag_indices(n)] = Kp[np.diag_indices(n)] + 0.5
+  if verbose:
+    print(dbgg.CYAN, end='')
+    print('  condition num = %.5e' %numpy.linalg.cond(np.array(Kp, float)))
+    print('  determinant   = %.5e' %numpy.linalg.det(np.array(Kp, float)))
+    print(dbgg.RESET, end='')
 
   Kps = l.SL.T.dot(Kp)
+  # --- rhs ---
   gs = l.SL.T.dot(g)
-  # if setups.mapNtoD_left == False:
-  #   Kps = Kp
-  #   gs = g
 
+  # --- correction s0 in first line ---
   gs[0] = 0
-  Kps[0, :] = l.s0
+  Kps[0, :] = l.s0 # potrebbe essere anche l.w ? vedi vecchio func_left in vecchio script
 
+  # --- linear system resolution : (Kp + 0.5 I) * phi = g ---
   phi = linalg.lstsq(Kps, gs)[0]
-
   if verbose and gs.ndim == 1:
-    print('residual', max(abs(np.array(Kps.dot(phi) - gs))))
+    print('  residual', max(abs(np.array(Kps.dot(phi) - gs))))
   return phi
 
+@printname_dpb
 def mapNtoDD_left_s0(lo, ld, g, c, s0=()):
   no = lo.n
   nd = ld.n

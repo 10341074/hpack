@@ -1,5 +1,5 @@
 from src import *
-import test_plots
+import tools_plots
 
 savefig = False
 plotstats = False
@@ -34,7 +34,7 @@ def first_compare(ld = (), prename = (), name = () ):
     p.noiselevel = 0
     p.alpha = 1e-10
     p.rg_solver()
-    p.rg_ipb()
+    p.ipb()
     #############################################
     fig = plt.figure()
     # plot
@@ -54,7 +54,7 @@ def first_compare(ld = (), prename = (), name = () ):
     p.noiselevel = 0
     p.alpha = 1e-10
     p.rg_solver()
-    p.rg_ipb()
+    p.ipb()
     #############################################
     fig = plt.figure()
     # plot
@@ -77,7 +77,7 @@ def test():
   p.meshgrid()
   p.theta = 0
   p.rg_solver()
-  p.rg_ipb()
+  p.ipb()
   p.plot()
   inp = input('Press')
   p.solver()

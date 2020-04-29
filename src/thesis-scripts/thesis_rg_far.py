@@ -4,7 +4,7 @@ import tools_plots
 savefig = False
 plotstats = False
 #######################################################################################################################
-no, nd = 100, 80
+no, nd = 120, 200
 ###########################################################################################################################
 ellipses = [
     sg.Layer([sg.Boundary([sg.Segment(nd, f_inargs = (sh.ellipse, (0, 2, 1)), quad='ps') ])]), 
@@ -27,58 +27,70 @@ def first_compare(ld = (), prename = (), name = () ):
       p.ld = ellipses[k]
     else:
       p.ld = ld
+    ###################################################################################################################
+    p.sb = sg.Segment(120, f_inargs = (sh.circle, (0, 10)), quad='ps')
+    p.so = sg.Segment(120, f_inargs = (sh.circle, (0, 8)), quad='ps')
     p.meshgrid((-3, 3, 80))
     ############################################
     p.noiselevel = 0
     p.alpha = 1e-10
-    p.solver()
+    p.theta = 0
+    p.rg_solver()
     p.ipb()
     #############################################
     fig = plt.figure()
     # plot
     plt.contour(p.x, p.y, p.z.reshape(p.y.size, p.x.size), 30)
-    p.ld.plot(lw = 2.8, ms = 1, color='m')
-    p.so.plot(lw = 1.2, ms = 1)
+    p.ld.plot(lw = 1.2, ms = 1)
+    # p.so.plot(lw = 1.2, ms = 1)
     plt.axis('equal')
     plt.axis('square')
-    # plt.show(block=False)
+    plt.show(block=False)
     if savefig:
-      plt.savefig('runs/fig-thesis/%s_lsm_%s%s_alpha%s_no%snd%s.eps' %(prename, name, k, p.alpha, no, nd), bbox_inches='tight')
-    # if k == 2:
-    #   plt.savefig('runs/fig-thesis/%s_lsm_%s%s_alpha%s_no%snd%s.eps' %(prename, name, k, p.alpha, no, nd), bbox_inches='tight')      
+      plt.savefig('runs/fig-thesis/%s_rg_far_%s%s_alpha%s_no%snd%snb%s_radius%s_theta%s.eps' %(prename, name, k, p.alpha, no, nd, p.sb.n, 10, p.theta), bbox_inches='tight')
+    ###################################################################################################################
+    p.sb = sg.Segment(120, f_inargs = (sh.circle, (0, 10)), quad='ps')
+    p.so = sg.Segment(120, f_inargs = (sh.circle, (0, 8)), quad='ps')
+    
+    p.meshgrid((-3, 3, 80))
+    ############################################
+    p.noiselevel = 0
+    p.alpha = 1e-10
+    p.theta = np.pi / 4
+    p.rg_solver()
+    p.ipb()
     #############################################
-    # FACTORIZATION METHOD
-    ##############################################
-    p.m0 = 30
-    p.fact_solver()    
-    p.fact_ieig()
-    #############################################
+    fig = plt.figure()
     # plot
-    v = tools_plots.plot_contourf_1(p, ())
-    o = tools_plots.stats(v)
-    if plotstats:
-      plt.plot(v[:,0], v[:,1],'b-')
-      # plt.plot([o[0].real, v[o[3],0]], [o[0].imag, v[o[3],1]], 'b-')
-    print(o[0].real, o[0].imag, o[1], o[2])
-    # p.ld.plot(lw = 1.2, ms = 1)
-    p.ld.plot(lw = 2.8, ms = 1, color='m')
+    plt.contour(p.x, p.y, p.z.reshape(p.y.size, p.x.size), 30)
+    p.ld.plot(lw = 1.2, ms = 1)
+    # p.so.plot(lw = 1.2, ms = 1)
     plt.axis('equal')
     plt.axis('square')
-    # plt.show(block=False)
+    plt.show(block=False)
     if savefig:
-      plt.savefig('runs/fig-thesis/%s_fm_%s%s_m%s_no%snd%s.eps' %(prename, name, k, p.m0, no, nd), bbox_inches='tight')
-  return
-def plot_ellipses():
+      print('sii')
+      plt.savefig('runs/fig-thesis/%s_rg_far_%s%s_alpha%s_no%snd%snb%s_radius%s_theta%s.eps' %(prename, name, k, p.alpha, no, nd, p.sb.n, 10, p.theta), bbox_inches='tight')
+    return
+
+#######################
+def test():
   p = m.EIT()
-  p.domain()
-  for s in ellipses:
-    p.ld = s
-    p.plot_domain()
-  return
+  p.domain('one_triangle')
+  p.meshgrid()
+  p.theta = 0
+  p.rg_solver()
+  p.ipb()
+  p.plot()
+  inp = input('Press')
+  p.solver()
+  p.ipb()
+  p.plot()
+  inp = input('Press')
 
 if __name__ == "__main__":
-  first_compare()
+  # first_compare()
   # first_compare(gm.sg_one_triangle(nd), 'first_compare', 'triangle')
-  # first_compare(gm.sg_one_kite(nd), 'first_compare', 'kite')
+  first_compare(gm.one_kite(nd), 'first_compare', 'kite')
   # first_compare(gm.sg_one_drop(nd), 'first_compare', 'drop')
   end = input('Press enter')

@@ -1,25 +1,32 @@
 from scipy.linalg import circulant
 import numpy as np
+from numpy import pi, sin, cos, log
 
-import __types__
 import quadr
+# ------------------------------------------------------------------------
 
-pi = np.pi
-log = np.log
-cos = np.cos
-sin = np.sin
-real = np.real
 symmflagval = -999.; # all diag vals of this signifies symmetric - a hack
+
+# ------------------------------------------------------------------------
 def scalar(a, b):
+  # np.real(a * np.conj(b)) = np.real(np.conj(a) * b) = a.real * b.real + a.imag * b.imag
   return a.real * b.real + a.imag * b.imag
-  # return np.real(a * np.conj(b))
 
 def fundsol(r = [], k = 0):
+  '''
+  r : is the absolute value of the distance, r = |d|
+  '''
   return -1.0 / 2 / pi * log(abs(r))
+def fundsol_deriv_negate(r = [], cosphi = 0 , k = 0):
+  '''
+  it's negation of radial fundsol: -f'(r)
 
-def fundsol_deriv(r = [], cosphi = 0 , k = 0): # without a -1
+  r : is the absolute value of the distance, r = |d|
+  cosphi: a real value or array of same length of r, cosphi = d / |d| * n
+  where d = s.x - t.x, (or x - y), and n is a unit vector of the direction where the directional derivative is taken in
+  '''
   return 1.0 / 2 / pi / r * cosphi
-
+# ---------------------------------
 def phi(z0=0, z=[]):
   return - 1. / 2 / pi * log(abs(z - z0))
 def phi_p(z0=0, z=[]):
@@ -73,7 +80,7 @@ def phi_y_n(z0=0, z=[], n=[]):
   return np.real(np.conj(n) * phi_y_p(z0, z))
 def phi_l_n(z0=0, z=[], n=[]):
   return scalar(phi_l_p(z0, z), n)
-
+# ------------------------------------------------------------------------
 def circulant_T(a=[]):
   A = circulant(a)
   A = A.T
@@ -102,8 +109,8 @@ def r_SD(k=0, s=[], t=[], o=[]):
   if t == []:
     slf = 1
     t = s
-  M = len(t.x);
-  N = len(s.x);
+  M = len(t.x)
+  N = len(s.x)
   
   d = np.array([t.x for k in range(N)])
   d = d.T
@@ -114,26 +121,28 @@ def r_SD(k=0, s=[], t=[], o=[]):
 
   n = np.array([t.nx for k in range(N)])
   n = n.T
-  cosphi = - np.real(np.conj(n) * d) / r;
+  cosphi = - np.real(np.conj(n) * d) / r
   
-  A = fundsol_deriv(r, cosphi, k)
+  A = fundsol_deriv_negate(r, cosphi, k)
   return (r, cosphi, A)
 
-def layerpotS(k=0, s=[], t=[], o=[], nodiag=0):
+def layerpotS(k=0, s=[], t=[], o=[], nodiag=0, noweights=False):
+  # --------------------------------
   slf = 0
   if t == []:
     slf = 1
     t = s
   M = len(t.x)
   N = len(s.x)
-
+  # --------------------------------
+  # initialize d_ij = t.x_i - s.x_j, r_ij =|d_ij|, matrices
   d = np.array([t.x for k in range(N)])
   d = d.T
   d = d - np.array([s.x for k in range(M)])
   r = abs(d)
   if slf or nodiag:
     r[np.diag_indices(N)] = symmflagval
-
+  # --------------------------------
   A = fundsol(r, k)
   sp = s.speed / 2 / pi # note: 2pi converts to speed wrt s in [0,2pi]
 
@@ -150,59 +159,82 @@ def layerpotS(k=0, s=[], t=[], o=[], nodiag=0):
     A = A.dot(np.diag(s.w))
   return A
 
-def layerpotD(k=0, s=[], t=[], o=[]):
+'''
+In the following function for layer potentials we use the following notation:
+
+  P: X -> Y
+  - s: source segment (where is defined basis of X?)
+    s.x, s.nx (complex unit normal vect), s.speed (real value speed), s.kappa (real value curvature), s.w (quadrature weights)
+  - t: target segment (where is defined basis of Y?)
+    t.x, t.nx (complex unit normal vect)
+  - k: wavenumber in Helmoltz equation (k = 0 for impedance equation)
+
+  the output is a matrix A of size (m, n)
+  A: Xn -> Yn
+  - n = len(s.x), num of source points
+  - m = len(t.x), num of target points
+'''
+
+def layerpotD(k=0, s=[], t=[], noweights=False):
+  # --------------------------------
   slf = 0
   if t == []:
     slf = 1
     t = s
   M = len(t.x)
   N = len(s.x)
-  
+  # --------------------------------
+  # initialize d_ij = t.x_i - s.x_j, r_ij =|d_ij|, matrices
   d = np.array([t.x for k in range(N)])
   d = d.T
   d = d - np.array([s.x for k in range(M)])
   r = abs(d)
   if slf:
     r[np.diag_indices(N)] = symmflagval
-
-  n = np.array([s.nx for k in range(M)])
-  cosphi = np.real(np.conj(n) * d) / r;
+  # --------------------------------
+  # K' operator: normal on s[]
+  nx = np.array([s.nx for k in range(M)])
+  cosphi = np.real(np.conj(nx) * d) / r
   
-  A = fundsol_deriv(r, cosphi, k)
-
-  sp = s.speed / 2 / pi
+  # --------------------------------
+  A = fundsol_deriv_negate(r, cosphi, k)
   if slf:
     A[np.diag_indices(N)] = -s.kappa / 4 / pi
-    A = A.dot(np.diag(s.w))
+  # --------------------------------
+  if noweights:
+    pass
   else:
     A = A.dot(np.diag(s.w))
   return A
 
-def layerpotSD(k=0, s=[], t=[], o=[]):
+def layerpotSD(k=0, s=[], t=[], noweights=False):
+  # --------------------------------
   slf = 0
   if t == []:
     slf = 1
     t = s
-  M = len(t.x);
-  N = len(s.x);
-  
+  M = len(t.x)
+  N = len(s.x)
+  # --------------------------------
+  # initialize d_ij = t.x_i - s.x_j, r_ij =|d_ij|, matrices
   d = np.array([t.x for k in range(N)])
   d = d.T
   d = d - np.array([s.x for k in range(M)])
   r = abs(d)
   if slf:
     r[np.diag_indices(N)] = symmflagval
-
-  n = np.array([t.nx for k in range(N)])
-  n = n.T
-  cosphi = - np.real(np.conj(n) * d) / r;
+  # --------------------------------
+  # K  operator: normal on t[]
+  nx = np.array([t.nx for k in range(N)]).T
+  cosphi = - np.real(np.conj(nx) * d) / r
   
-  A = fundsol_deriv(r, cosphi, k)
-
-  sp = s.speed / 2 / pi
+  # --------------------------------
+  A = fundsol_deriv_negate(r, cosphi, k)
   if slf:
     A[np.diag_indices(N)] = -s.kappa / 4 / pi
-    A = A.dot(np.diag(s.w))
+  # --------------------------------
+  if noweights:
+    pass
   else:
     A = A.dot(np.diag(s.w))
   return A
@@ -242,8 +274,8 @@ def layerpotDD(k=0, s=[], t=[], o=[]):
 
     
 def layerpotSDnow(k=0, s=(), t=()):
-  M = len(t.x);
-  N = len(s.x);
+  M = len(t.x)
+  N = len(s.x)
   
   d = np.array([t.x for k in range(N)])
   d = d.T
@@ -252,9 +284,9 @@ def layerpotSDnow(k=0, s=(), t=()):
 
   n = np.array([t.nx for k in range(N)])
   n = n.T
-  cosphi = - np.real(np.conj(n) * d) / r;
+  cosphi = - np.real(np.conj(n) * d) / r
   
-  A = fundsol_deriv(r, cosphi, k)
+  A = fundsol_deriv_negate(r, cosphi, k)
   return A
 
 def layerpotSnow(k=0, s=(), t=()):
@@ -274,8 +306,8 @@ def layerpotSD_slf(k=0, s=[], t=[], o=[], slf=0):
   if t == []:
     slf = 1
     t = s
-  M = len(t.x);
-  N = len(s.x);
+  M = len(t.x)
+  N = len(s.x)
   d = np.array([t.x for k in range(N)])
   d = d.T
   d = d - np.array([s.x for k in range(M)])
@@ -287,9 +319,9 @@ def layerpotSD_slf(k=0, s=[], t=[], o=[], slf=0):
 
   n = np.array([t.nx for k in range(N)])
   n = n.T
-  cosphi = - np.real(np.conj(n) * d) / r;
+  cosphi = - np.real(np.conj(n) * d) / r
   
-  A = fundsol_deriv(r, cosphi, k)
+  A = fundsol_deriv_negate(r, cosphi, k)
 
   sp = s.speed / 2 / pi
   if slf:

@@ -2,7 +2,7 @@ from src import *
 import tools_plots
 
 savefig = False
-plotstats = False
+plotstats = True
 my_fact_L_trigbasis = False
 
 
@@ -49,43 +49,20 @@ def first_compare(ld = (), prename = (), name = () ):
       plt.plot(v[:,0], v[:,1],'b-')
       # plt.plot([o[0].real, v[o[3],0]], [o[0].imag, v[o[3],1]], 'b-')
     print(o[0].real, o[0].imag, o[1], o[2])
-    # p.ld.plot(lw = 1.2, ms = 1)
-    p.ld.plot(lw = 2.8, ms = 1, color='m')
+    p.ld.plot(lw = 1.2, ms = 1)
     plt.axis('equal')
     plt.axis('square')
     plt.show(block=False)
     if savefig:
-      plt.savefig('runs/fig-thesis/%s_fm_%s%s_m0%s.eps' %(prename, name, k, p.m0), bbox_inches='tight')
+      plt.savefig('runs/fig-thesis/%s_fm_%s%s.eps' %(prename, name, k), bbox_inches='tight')
     #############################################
-    eigplot(p.fact_wsorted, p.m0, p.fact_linreg, prename = prename, name = name)
+    eigplot(p.fact_wsorted, p.m0, p.fact_linreg)
     ############################################################################
     ############################################################################
-    # # LLdiff
-    # p.m0 = 30
-    # p.fact_solver()
-    # p.LLfact = p.LLdiff
-    # print("Trig is", setups.fact_L_trigbasis)
-    # p.fact_ieig()
-    # #############################################
-    # # plot
-    # v = tools_plots.plot_contourf_1(p, ())
-    # o = tools_plots.stats(v)
-    # if plotstats:
-    #   plt.plot(v[:,0], v[:,1],'b-')
-    #   # plt.plot([o[0].real, v[o[3],0]], [o[0].imag, v[o[3],1]], 'b-')
-    # print(o[0].real, o[0].imag, o[1], o[2])
-    # p.ld.plot(lw = 1.2, ms = 1)
-    # plt.axis('equal')
-    # plt.axis('square')
-    # plt.show(block=False)
-    # if savefig:
-    #   plt.savefig('runs/fig-thesis/%s_fm_%s%s_LLdiff.eps' %(prename, name, k), bbox_inches='tight')
-    # #############################################
-    # eigplot(p.fact_wsorted, p.m0, p.fact_linreg)
-    ################################################################################
-    p.m0 = 40
+    # LLdiff
+    p.m0 = 30
     p.fact_solver()
-    p.LLfact = p.LL0
+    p.LLfact = p.LLdiff
     print("Trig is", setups.fact_L_trigbasis)
     p.fact_ieig()
     #############################################
@@ -96,44 +73,33 @@ def first_compare(ld = (), prename = (), name = () ):
       plt.plot(v[:,0], v[:,1],'b-')
       # plt.plot([o[0].real, v[o[3],0]], [o[0].imag, v[o[3],1]], 'b-')
     print(o[0].real, o[0].imag, o[1], o[2])
-    # p.ld.plot(lw = 1.2, ms = 1)
-    p.ld.plot(lw = 2.8, ms = 1, color='m')
+    p.ld.plot(lw = 1.2, ms = 1)
     plt.axis('equal')
     plt.axis('square')
     plt.show(block=False)
     if savefig:
-      plt.savefig('runs/fig-thesis/%s_fm_%s%s_m0%s.eps' %(prename, name, k, p.m0), bbox_inches='tight')
-    ###########################################
-    eigplot(p.fact_wsorted, p.m0, p.fact_linreg, prename = prename, name = name)
+      plt.savefig('runs/fig-thesis/%s_fm_%s%s_LLdiff.eps' %(prename, name, k), bbox_inches='tight')
+    #############################################
+    eigplot(p.fact_wsorted, p.m0, p.fact_linreg)
   return
 
-def eigplot(wsorted, m0, linreg, prename = (), name = ()):
+def eigplot(wsorted, m0, linreg):
   # plot
   fig = plt.figure()
+  plt.plot(range(len(wsorted[0])), np.log(wsorted[0]), 'kp', ms=2)
   x = np.arange(m0)
-  plt.plot(x, linreg.intercept + linreg.slope*x, 'b-', ms=0.2)
-  ax = fig.add_subplot(111)
-  ######
-  temp_y = np.array([1, 1]) * np.log(wsorted[0][int(29)])
-  plt.plot([0, len(wsorted[0])], temp_y, 'k:', ms=0.2)
-  pnt = (100, temp_y[0] + 0.15)
-  ax.annotate('m = 30', xy=pnt , textcoords='data')
-  temp_y = np.array([1, 1]) * np.log(wsorted[0][int(39)])
-  plt.plot([0, len(wsorted[0])], temp_y, 'k:', ms=0.2)
-  pnt = (100, temp_y[0] + 0.15)
-  ax.annotate('m = 40', xy=pnt , textcoords='data')
-
-  plt.plot(range(len(wsorted[0])), np.log(wsorted[0]), 'ko', ms=2, markeredgewidth=1, markeredgecolor='k',
-           markerfacecolor='None')
-
-  plt.show(block=False)
+  plt.plot(x, linreg.intercept + linreg.slope*x, 'k:', ms=0.2)
+  plt.show(block=False)  
   if savefig:
-    plt.savefig('runs/fig-thesis/%s_fm_%s_m0%s_%s.eps' %(prename, name, m0, "eig"), bbox_inches='tight')
+    plt.savefig('runs/fig-thesis/%s_fm_%s%s.eps' %(prename, name, "eig"), bbox_inches='tight')
   return
 
 
 if __name__ == "__main__":
-  first_compare(gm.two_ellipse(100), 'first_compare', 'two_ellipse')
-  first_compare(gm.three_ellipse(100), 'first_compare', 'three_ellipse')
-  
+  # first_compare()
+  # first_compare(gm.sg_one_triangle(80), 'first_compare', 'triangle')
+  # first_compare(gm.sg_one_kite(80), 'first_compare', 'kite')
+  # first_compare(gm.sg_one_drop(80), 'first_compare', 'drop')
+  # first_compare(gm.two_ellipse(80), 'first_compare', 'two_ellipse')
+  # first_compare(gm.three_ellipse(80), 'first_compare', 'three_ellipse')  
   end = input('Press enter')

@@ -37,19 +37,17 @@ def first_compare(ld = (), prename = (), name = () ):
     fig = plt.figure()
     # plot
     plt.contour(p.x, p.y, p.z.reshape(p.y.size, p.x.size), 30)
-    p.ld.plot(lw = 2.8, ms = 1, color='m')
+    p.ld.plot(lw = 1.2, ms = 1)
     p.so.plot(lw = 1.2, ms = 1)
     plt.axis('equal')
     plt.axis('square')
     # plt.show(block=False)
     if savefig:
       plt.savefig('runs/fig-thesis/%s_lsm_%s%s_alpha%s_no%snd%s.eps' %(prename, name, k, p.alpha, no, nd), bbox_inches='tight')
-    # if k == 2:
-    #   plt.savefig('runs/fig-thesis/%s_lsm_%s%s_alpha%s_no%snd%s.eps' %(prename, name, k, p.alpha, no, nd), bbox_inches='tight')      
     #############################################
     # FACTORIZATION METHOD
     ##############################################
-    p.m0 = 30
+    p.m0 = 10
     p.fact_solver()    
     p.fact_ieig()
     #############################################
@@ -60,8 +58,7 @@ def first_compare(ld = (), prename = (), name = () ):
       plt.plot(v[:,0], v[:,1],'b-')
       # plt.plot([o[0].real, v[o[3],0]], [o[0].imag, v[o[3],1]], 'b-')
     print(o[0].real, o[0].imag, o[1], o[2])
-    # p.ld.plot(lw = 1.2, ms = 1)
-    p.ld.plot(lw = 2.8, ms = 1, color='m')
+    p.ld.plot(lw = 1.2, ms = 1)
     plt.axis('equal')
     plt.axis('square')
     # plt.show(block=False)

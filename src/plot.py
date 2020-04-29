@@ -2,12 +2,14 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import axes3d
 from matplotlib import cm
 
-# import pylab
 import numpy as np
 
-
-# def meshgrid((x1, x2, xn), (y1, y2, yn)=((), (), ())):
 def meshgrid(x1_x2_xn, y1_y2_yn=((), (), ())):
+  '''
+  This function requires a triplet (x1, x2, xn), it's used for y if not specified
+  It returns (x, y, pp), where 'pp' is the dyadic product of the axes, it's complex and flatten for easy evaluation
+  The output (x, y, pp) is ready for plot(x, y, vv=fun(pp)) evaluated on 'pp'
+  '''
   x1, x2, xn = x1_x2_xn
   y1, y2, yn = y1_y2_yn
   xs = float(x2 - x1) / (xn - 1)
@@ -25,17 +27,14 @@ def meshgrid(x1_x2_xn, y1_y2_yn=((), (), ())):
   pp = pp.reshape(xn * yn)
   return (x, y, pp)
 
-# z = np.sin(xx**2 + yy**2) / (xx**2 + yy**2)
-# z = xx**2 + yy**2
-
-def plot(x, y, vv, t='im', fig=[], show=1):
+def plot(x, y, vv, t='im', fig=[], show=1, *args, **kwargs):
   fig = plt.figure()
   v = vv.reshape((len(y), len(x)))
   if t == 'cf':
     fig = plt.contourf(x, y, v, 20)
     plt.colorbar()
   elif t == 'im':
-    fig = plt.imshow(np.array(v[::-1], 'float64'), extent = (x[0], x[-1], y[0], y[-1]))
+    fig = plt.imshow(np.array(v[::-1], 'float64'), extent = (x[0], x[-1], y[0], y[-1]), *args, **kwargs)
     plt.colorbar()
   elif t == 'srf' or t == 'maxsrf':
     if t == 'maxsrf':
