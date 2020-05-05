@@ -10,24 +10,24 @@ def _lstsq(_m, _rhs):
 
 
 class SolverSavings:
-  def __init__(self, num_testpoints, Aregularized_shape):
-    self.zeta    = np.zeros((0, num_testpoints, Aregularized_shape[1]), float)
-    self.sol     = np.zeros((0, num_testpoints, Aregularized_shape[1]), float)
-    self.alpha   = np.zeros((0, num_testpoints                       ), float)
-    self.disc    = np.zeros((0, num_testpoints                       ), float)
-    self.disc_p  = np.zeros((0, num_testpoints                       ), float)
-    self.ratio   = np.zeros((0, num_testpoints                       ), float)
-    self.alpha_l = np.zeros((   num_testpoints), float)
-    self.alpha_r = np.zeros((   num_testpoints), float)
-    self.rhs     = np.zeros((0, num_testpoints, Aregularized_shape[0]), float)
+  def __init__(self, it_alpha, num_testpoints, Aregularized_shape):
+    self.zeta     = np.zeros((it_alpha, num_testpoints, Aregularized_shape[1]), float)
+    self.sol      = np.zeros((it_alpha, num_testpoints, Aregularized_shape[1]), float)
+    self.alpha    = np.zeros((it_alpha, num_testpoints                       ), float)
+    self.disc     = np.zeros((it_alpha, num_testpoints                       ), float)
+    self.discr_d  = np.zeros((it_alpha, num_testpoints                       ), float)
+    self.ratio    = np.zeros((it_alpha, num_testpoints                       ), float)
+    self.alpha_l  = np.zeros((          num_testpoints), float)
+    self.alpha_r  = np.zeros((          num_testpoints), float)
+    self.rhs      = np.zeros((it_alpha, num_testpoints, Aregularized_shape[0]), float)
   def add_iterations_alpha(self, it_alpha, num_testpoints, Aregularized_shape):
-    self.zeta    = np.append(self.zeta,   np.zeros((it_alpha, num_testpoints, Aregularized_shape[1]), float), axis=0)
-    self.sol     = np.append(self.sol,    np.zeros((it_alpha, num_testpoints, Aregularized_shape[1]), float), axis=0)
-    self.alpha   = np.append(self.alpha,  np.zeros((it_alpha, num_testpoints                       ), float), axis=0)
-    self.disc    = np.append(self.disc,   np.zeros((it_alpha, num_testpoints                       ), float), axis=0)
-    self.disc_p  = np.append(self.disc_p, np.zeros((it_alpha, num_testpoints                       ), float), axis=0)
-    self.ratio   = np.append(self.ratio,  np.zeros((it_alpha, num_testpoints                       ), float), axis=0)
-    self.rhs     = np.append(self.rhs,    np.zeros((it_alpha, num_testpoints, Aregularized_shape[0]), float), axis=0)
+    self.zeta     = np.append(self.zeta,    np.zeros((it_alpha, num_testpoints, Aregularized_shape[1]), float), axis=0)
+    self.sol      = np.append(self.sol,     np.zeros((it_alpha, num_testpoints, Aregularized_shape[1]), float), axis=0)
+    self.alpha    = np.append(self.alpha,   np.zeros((it_alpha, num_testpoints                       ), float), axis=0)
+    self.disc     = np.append(self.disc,    np.zeros((it_alpha, num_testpoints                       ), float), axis=0)
+    self.discr_d  = np.append(self.discr_d, np.zeros((it_alpha, num_testpoints                       ), float), axis=0)
+    self.ratio    = np.append(self.ratio,   np.zeros((it_alpha, num_testpoints                       ), float), axis=0)
+    self.rhs      = np.append(self.rhs,     np.zeros((it_alpha, num_testpoints, Aregularized_shape[0]), float), axis=0)
 
 
 class Solver:
@@ -52,12 +52,13 @@ class Solver:
     ''' delta is used for noise '''
     self.delta = delta
     ''' original alpha: saved to restart morozov iterations with different test point '''
-    self.alpha_orig   = alpha
-    self.alpha_l_orig = 1e-30
     self.alpha_r_orig = alpha
+    self.alpha_l_orig = 1e-30
+    self.alpha_orig   = alpha
+    self.alpha_method = 'opt_bisect'
     ''' savings '''
-    self.save = SolverSavings(len(testpoints.x), self.Ar.shape)
-    ''' init arrays '''
+    self.save = SolverSavings(0, len(testpoints.x), self.Ar.shape)
+    ''' init linear system '''
     self.init_solver_arrays(solvertype)
     return
   def init_solver_arrays(self, solvertype):

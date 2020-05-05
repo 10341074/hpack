@@ -8,7 +8,6 @@ import scipy.stats
 import numpy.random
 import time
 
-from __types__ import *
 import shapes as sh
 import layerpot as ly
 import segment as sg

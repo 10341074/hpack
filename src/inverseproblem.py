@@ -8,7 +8,6 @@ import scipy.stats
 import numpy.random
 import time
 
-from __types__ import *
 import shapes as sh
 import layerpot as ly
 import segment as sg
@@ -121,32 +120,19 @@ def solver_init(A, alpha, delta, reg, regmet, solvertype, RHS_fcom, RHS_args, so
 # ------------------------ reciprocity gap -------------------------------------------------------
 @printname_ipb
 def computeU(allpsi, ld, so, sb):
-  nso, nsb = so.n, sb.n
-  U_psi = np.empty((nso, nsb), float)
-  U_psi_nu = np.empty((nso, nsb), float)
-  # kerS = sg.eval_layer(ld, so, exp = ly.layerpotS)
-  # kerSD = sg.eval_layer(ld, so, exp = ly.layerpotSD)
-  kerS = ly.layerpotS(0, ld, so)
+  kerS  = ly.layerpotS(0, ld, so)
   kerSD = ly.layerpotSD(0, ld, so)
 
-  # for k in range(nsb):
-  #   U_psi[:,k] = kerS.dot(allpsi[:,k])
-  #   U_psi_nu[:,k] = kerSD.dot(allpsi[:,k])
-  U_psi = kerS.dot(allpsi)
+  U_psi    = kerS.dot(allpsi)
   U_psi_nu = kerSD.dot(allpsi)
 
-  # U_psi = np.diag(so.w) * U_psi
-  # U_psi_nu = np.diag(so.w) * U_psi_nu
-  U_psi = U_psi.T.dot(np.diag(so.w))
+  U_psi    = U_psi.T.dot(np.diag(so.w))
   U_psi_nu = U_psi_nu.T.dot(np.diag(so.w))
 
-  U = ly.layerpotS(s=so, t=sb)
+  U    = ly.layerpotS(s=so, t=sb)
   U_nu = ly.layerpotD(s=so, t=sb)
-
-  # U = U + U_psi.';
-  # U_nu = U_nu + U_psi_nu.';
   
-  U = U + U_psi
+  U    = U + U_psi
   U_nu = U_nu + U_psi_nu
   return (U, U_nu)
 
@@ -158,7 +144,6 @@ def computeR(allpsi, ld, so, sb, sv=(), testset=1):
 
   U, U_nu = computeU(allpsi, ld, so, sb)
   
-  #lb = sg.Layer([sd], ly.layerpotS)
   testset = 1
   if testset == 1 or testset == 3:
     V1 = ly.layerpotS(s=sv, t=so)
@@ -267,13 +252,17 @@ def func_disc_value_pow1_n(res, sol, w, delta):
     - res = residual
     - sol = x
   '''
-  return np.sqrt(sum(res**2 * w)) - delta * np.sqrt(sum(sol**2 * w))
+  ret = np.sqrt((res**2).dot(w)) - delta * np.sqrt((sol**2).dot(w))
+  # print("  discrepancy shape =", ret.shape)
+  return ret
 def func_disc_deriv_pow1_n(res, Kdx, sol, sol_p, w, delta):
   '''
-    The following formula
-      1 / [| K * x{alpha, delta} - y{delta}|] < K * x{delta, alpha} - y{delta}, K d/d_alpha(x{alpha, delta})> - delta * 1/[| x{alpha, delta} |}< x{alpha, delta}, d/d_alpha x{alpha, delta}>
+    The following formula (x is shortend for x{delt, alpha}, y for y{delta}) is first variation applied to increment dx
+      1/| K*x - y| * 2 * <K*x - y, K*dx)> - delta * 1/|x| * 2 * <x, dx>
   '''  
-  return sum(res * Kdx * w) / np.sqrt(sum(res**2 * w)) - delta * sum(sol * sol_p * w) / np.sqrt(sum(sol**2 *w))
+  ret = 2 * (res * Kdx).dot(w) / np.sqrt((res**2).dot(w)) - delta * 2 * (sol * sol_p).dot(w) / np.sqrt((sol**2).dot(w))
+  # print("  discrepancy deriv shape =", ret.shape)
+  return ret
 # -----------------------------------------------------
 def func_alpha_newton(alpha, discrepancy, discrepancy_derived):
   return alpha - discrepancy / discrepancy_derived
@@ -299,7 +288,7 @@ def iallsols(isolver, pointstest, so):
   print(dbgg.RESET, end='')
 
 
-  w = isolver.w
+  w = isolver.w # previously was set to sb.w (error?)
   if isolver.w == ():
     w = so.w
   isolver.save_zeta  = np.empty((len(pointstest.x), isolver.A.shape[1]), float)
@@ -346,10 +335,11 @@ def iallsols_onetestpoint(isolver, w, k_point, k_alpha, rhs):
       eq 2.0: (alpha + K^T K) d(zeta)/d(alpha) = - zeta
   '''
   # ---- 1st linear sistem -----------------------------------
-  RHSr       = isolver.RHS_f(isolver.A, rhs=rhs)
+  rhsregul   = isolver.RHS_f(isolver.A, rhs=rhs)
   isolver.Ar = computeAtikh(isolver.A, isolver.alpha)
-  zeta = linalg.solve(isolver.Ar, RHSr)
-  
+  # print("isolver for alpha %e cond %e " %( isolver.alpha, numpy.linalg.cond(np.array(isolver.Ar, float))))
+  zeta = linalg.solve(isolver.Ar, rhsregul)
+
   # ---- 2nd linear sistem -----------------------------------
   zeta_p = linalg.solve(isolver.Ar, -zeta)
   # ----------------------------------------------------------
@@ -368,83 +358,28 @@ def iallsols_onetestpoint(isolver, w, k_point, k_alpha, rhs):
   # ---- save ------------------------------------------------
   discrepancy       = func_disc_value_pow1_n(res, sol, w, isolver.delta)
   discrepancy_deriv = func_disc_deriv_pow1_n(res, Kdx, sol, sol_p, w, isolver.delta)
-  isolver.save.disc  [k_alpha, k_point] = discrepancy
-  isolver.save.alpha [k_alpha, k_point] = isolver.alpha
-  isolver.save.disc_p[k_alpha, k_point] = discrepancy_deriv
-  isolver.save.ratio [k_alpha, k_point] = np.sqrt(sum(rhs**2 * w)) / np.sqrt(sum(sol**2 * w))
-  isolver.save.alpha_l[k_point] = isolver.alpha_l
-  isolver.save.alpha_r[k_point] = isolver.alpha_r
+  isolver.save.disc    [k_alpha, k_point] = discrepancy
+  isolver.save.alpha   [k_alpha, k_point] = isolver.alpha
+  isolver.save.discr_d [k_alpha, k_point] = discrepancy_deriv
+  isolver.save.ratio   [k_alpha, k_point] = np.sqrt(sum(rhs**2 * w)) / np.sqrt(sum(sol**2 * w))
+  isolver.save.alpha_l          [k_point] = isolver.alpha_l
+  isolver.save.alpha_r          [k_point] = isolver.alpha_r
   # ----------------------------------------------------------
-  # ---- new alpha limits -----
-  isolver.alpha, isolver.alpha_l, isolver.alpha_r = func_alpha_bis(isolver.alpha, isolver.alpha_l, isolver.alpha_r, discrepancy)
+  # ---- new alpha limits for next iterations -----
+  if isolver.alpha_method == 'opt_bisect':
+    isolver.alpha, isolver.alpha_l, isolver.alpha_r = func_alpha_bis(isolver.alpha, isolver.alpha_l, isolver.alpha_r, discrepancy)
+  elif isolver.alpha_method == 'fixedarray':
+    isolver.alpha, isolver.alpha_l, isolver.alpha_r = isolver.alpha_fixedarray[(k_alpha+1)%len(isolver.alpha_fixedarray)], isolver.alpha_fixedarray[-1], isolver.alpha_fixedarray[0]
+  else:
+    raise Exception('Error: not valid method for alpha')
   return
 @printname_ipb_solve_testpoint
-def iallsols_opt(isolver, pointstest, so, it_alpha=2):
-  w = so.w
-  isolver.save_zeta    = np.empty((len(pointstest.x), isolver.A.shape[1], it_alpha), float)
-  isolver.save_sol     = np.empty((len(pointstest.x), so.n,               it_alpha), float)
-  isolver.save_alpha   = np.empty((len(pointstest.x),                     it_alpha), float)
-  isolver.save_disc    = np.empty((len(pointstest.x),                     it_alpha), float)
-  isolver.save_disc_p  = np.empty((len(pointstest.x),                     it_alpha), float)
-  isolver.save_ratio   = np.empty((len(pointstest.x),                     it_alpha), float)
-  isolver.save_alpha_l = np.empty((len(pointstest.x)), float)
-  isolver.save_alpha_r = np.empty((len(pointstest.x)), float)
-
-  # -----------------------------------------------------------------------------
-  # test one point to get rhs-size for empty initialization
-  isolver.RHS_args['z0'] = pointstest.x[0]
-  rhs = isolver.RHS_fcom(isolver.RHS_args)
-  isolver.save_rhs     = np.empty((len(pointstest.x), len(rhs), it_alpha), float)
-  # -----------------------------------------------------------------------------
-
-  for k_point in range(len(pointstest.x)):
-    if pointstest.flag_inside_s[k_point] == 1:
-      isolver.RHS_args['z0'] = pointstest.x[k_point]
-      isolver.alpha   = isolver.alpha_orig
-      isolver.alpha_l = isolver.alpha_l_orig
-      isolver.alpha_r = isolver.alpha_r_orig
-      for k_alpha in range(it_alpha):
-        if pointstest.flag_inside_s[k_point] == 1:
-          rhs = isolver.RHS_fcom(isolver.RHS_args) # to put outside
-          iallsols_onetestpoint(isolver, w, k_point, k_alpha, rhs = rhs)
-        # time.sleep(0.005)
-    if np.mod(k_point, 5) == 0:
-      print('  percentage %.2f' %(k_point / len(pointstest.x) * 100))
-  return
-@printname_ipb_solve_testpoint
-def iallsols_opt_append(isolver, pointstest, so, it_alpha=2):
-  w = so.w
-  it_old = isolver.save_zeta.shape[2]
-  # ninv = np.empty(len(pointstest.x), float)
-  isolver.save_zeta   = np.append(isolver.save_zeta, np.empty((len(pointstest.x), isolver.A.shape[1], it_alpha), float), axis=2)
-  isolver.save_sol    = np.append(isolver.save_sol, np.empty((len(pointstest.x), so.n, it_alpha), float), axis=2)
-  isolver.save_alpha  = np.append(isolver.save_alpha, np.empty((len(pointstest.x), it_alpha), float), axis=1)
-  isolver.save_disc   = np.append(isolver.save_disc, np.empty((len(pointstest.x), it_alpha), float), axis=1)
-  isolver.save_disc_p = np.append(isolver.save_disc_p, np.empty((len(pointstest.x), it_alpha), float), axis=1)
-  isolver.save_ratio  = np.append(isolver.save_ratio, np.empty((len(pointstest.x), it_alpha), float), axis=1)
-  # isolver.save_alpha_l = np.append(isolver.save_alpha, np.empty((len(pointstest.x)), float), axis=1)
-  # isolver.save_alpha_r = np.append(isolver.save_alpha, np.empty((len(pointstest.x)), float), axis=1)
-
-  
-  # test one point
-  isolver.RHS_args['z0'] = pointstest.x[0]
-  RHS = isolver.RHS_fcom(isolver.RHS_args)
-
-  isolver.save_rhs = np.append(isolver.save_rhs, np.empty((len(pointstest.x), len(RHS), it_alpha), float), axis=2)
-  # alpha_orig = isolver.alpha
-  for k in range(len(pointstest.x)):
-    if pointstest.flag_inside_s[k] == 1:
-      isolver.RHS_args['z0'] = pointstest.x[k]
-      isolver.alpha = isolver.save_alpha[k, it_old - 1]
-      # print(isolver.alpha)
-      isolver.alpha_l = isolver.save_alpha_l[k]
-      isolver.alpha_r = isolver.save_alpha_r[k]
-      for k_alpha in range(it_old, it_old + it_alpha):
-        RHS = isolver.RHS_fcom(isolver.RHS_args)
-        iallsols_onetestpoint(isolver, w, k, k_alpha, rhs = RHS)
-        # time.sleep(0.005)
-  return
-def iallsols_opt_new(isolver, pointstest, it_alpha=2):
+def iallsols_opt_new(isolver, pointstest, it_alpha):
+  print(dbgg.CYAN, end='')
+  print('  matrix Ar with alpha = %e' %isolver.alpha)
+  print('  condition num = %.5e' %numpy.linalg.cond(np.array(isolver.Ar, float)))
+  print('  determinant   = %.5e' %numpy.linalg.det(np.array(isolver.Ar, float)))
+  print(dbgg.RESET, end='')
   isolver.add_iterations_alpha(num_testpoints=len(pointstest.x), it_alpha=it_alpha)
   # -----------------------------------------------------------------------------
   for k_point in range(len(pointstest.x)):
@@ -457,7 +392,7 @@ def iallsols_opt_new(isolver, pointstest, it_alpha=2):
       if pointstest.flag_inside_s[k_point] == 1:
         for k_alpha in range(it_alpha):
           iallsols_onetestpoint(isolver, isolver.w, k_point, k_alpha, rhs = rhs)
-        # time.sleep(0.005)
+          # time.sleep(0.005)
     if np.mod(k_point, 50) == 0:
       print('  percentage %.2f' %(k_point / len(pointstest.x) * 100))
   return
@@ -545,36 +480,6 @@ def ieig(w, v, wsorted, m0, linreg, isolver, pointstest, LL0, so, theta=0):
     # print(pointstest.x[k], chi[k])
     # ninv[k] = np.exp(rhs_linreg.slope) - np.exp(linreg.slope)
   return chi
-
-####################################
-def test_one(isolver, pointstest, so, alpha):
-  w = so.w
-
-  ninv = np.empty(len(pointstest.x), float)
-  isolver.save_zeta = np.empty((len(pointstest.x), isolver.A.shape[1], len(alpha)), float)
-  isolver.save_sol = np.empty((len(pointstest.x), so.n, len(alpha)), float)
-  isolver.save_alpha = np.empty((len(pointstest.x), len(alpha)), float)
-  isolver.save_disc = np.empty((len(pointstest.x), len(alpha)), float)
-  isolver.save_disc_p = np.empty((len(pointstest.x), len(alpha)), float)
-  isolver.save_ratio = np.empty((len(pointstest.x), len(alpha)), float)
-
-  # test one point
-  isolver.RHS_args['z0'] = pointstest.x[0]
-  RHS = isolver.RHS_fcom(isolver.RHS_args)
-
-  isolver.save_rhs = np.empty((len(pointstest.x), len(RHS), len(alpha)), float)
-  # alpha = np.array([al_start + al_step * k for k in range(len(alpha))])
-  alpha_orig = isolver.alpha
-  for k in range(len(pointstest.x)):
-    isolver.RHS_args['z0'] = pointstest.x[k]
-    isolver.alpha_l = 1e-16
-    isolver.alpha_r = alpha_orig
-
-    for k_alpha in range(len(alpha)):
-      isolver.alpha = alpha[k_alpha]
-      iallsols_onetestpoint(isolver, w, k, k_alpha)
-      time.sleep(0.005)
-  return
 ############################################
 def testieig(w, v, wsorted, m0, linreg, isolver, pointstest, LL0, so, theta=0):
   # transposition
@@ -617,11 +522,7 @@ def testieig(w, v, wsorted, m0, linreg, isolver, pointstest, LL0, so, theta=0):
     # ninv[k] = np.exp(rhs_linreg.slope) - np.exp(linreg.slope)
   print(rhs_y)
   return chi, rhs_y, rhs_linreg
-
-
-
 # ================================================================================================
-
 # def computek(zeta, z0, ld, lb):
 #   F = ly.phi(z0, ld.x)
 #   F_nu = ly.phi_n(z0, ld.x, ld.nx)

@@ -1,7 +1,7 @@
 # source this file
-#export PATH=$PATH:$PWD/../hpack/src
-#export PATH=$PATH:$PWD/../hpack-old2/src
+# export PATH=$PATH:$PWD/../hpack/src
+# export PATH=$PATH:$PWD/../hpack-old2/src
 export PATH=$PATH:$PWD
 export PATH=$PATH:$PWD/src
 export PYTHONPATH=$PATH
-. bin/activate
+# . bin/activate

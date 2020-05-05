@@ -9,8 +9,6 @@ it_alpha = 2
 
 p = m.EIT()
 p.domain()
-# p.ld = gm.two_ellipse(nd)
-# p.ld = gm.three_ellipse(nd)
 p.ld = sg.Layer([sg.Boundary([sg.Segment(nd, f_inargs = (sh.ellipse, (0, 0.1, 1.2)), quad='ps', aff=(-1, np.exp(1j * np.pi * 2/3))) ])])
 
 p.meshgrid((-3, 3, 80))

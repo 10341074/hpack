@@ -27,25 +27,32 @@ def meshgrid(x1_x2_xn, y1_y2_yn=((), (), ())):
   pp = pp.reshape(xn * yn)
   return (x, y, pp)
 
-def plot(x, y, vv, t='im', fig=[], show=1, *args, **kwargs):
+def plot(x, y, vv, show=1, pltype='im', *args, **kwargs):
   fig = plt.figure()
   v = vv.reshape((len(y), len(x)))
-  if t == 'cf':
-    fig = plt.contourf(x, y, v, 20)
+  if pltype == 'c':
+    if 'levels' not in kwargs: kwargs['levels'] = 20
+    fig = plt.contour(x, y, v)
     plt.colorbar()
-  elif t == 'im':
+  if pltype == 'cf':
+    if 'levels' not in kwargs: kwargs['levels'] = 20
+    fig = plt.contourf(x, y, v)
+    plt.colorbar()
+  elif pltype == 'im':
     fig = plt.imshow(np.array(v[::-1], 'float64'), extent = (x[0], x[-1], y[0], y[-1]), *args, **kwargs)
     plt.colorbar()
-  elif t == 'srf' or t == 'maxsrf':
-    if t == 'maxsrf':
+  elif pltype == 'srf' or pltype == 'maxsrf':
+    if pltype == 'maxsrf':
       mng = plt.get_current_fig_manager()
       mng.resize(*mng.window.maxsize())
     ax = fig.gca(projection='3d')
     xx, yy = np.meshgrid(x, y, sparse=True)
     surf = ax.plot_surface(xx, yy, v, cmap=cm.coolwarm)
     fig.colorbar(surf)
+  # ------------------
     # surf = ax.plot_surface(X, Y, Z, cmap=cm.coolwarm, linewidth=0, antialiased=False)
-  # h = pylab.imshow(v, interpolation='nearest')
+    # h = pylab.imshow(v, interpolation='nearest')
+  # ----------------------------------------------------------------------------------------------------
   plt.axis('equal')
   if show:
     plt.show(block=False)

@@ -117,18 +117,18 @@ class Segment:
       
       self.BX, self.BXinv = get_Basis(self.n)
       self.BY, self.BYinv = get_Basis(self.n)
-
-      # if f_inargs[0] == 'ellipse':
-      self.name = f_inargs[0]
-      self.params = f_inargs[1]
+    # ---- save properties ----------------------------------------------
+    self.name   = f_inargs[0]
+    self.params = f_inargs[1]
+    self.aff    = aff
     return # __init__
   # ----------------------------------------------------------------------
   def contains(self, x):
     if self.name == sh.ellipse:
-      f = (x - self.params[0]).real ** 2 / self.params[1] ** 2 + (x - self.params[0]).imag ** 2 / self.params[2] ** 2 - 1
+      f = ((x - self.params[0] - self.aff[0]) / self.aff[1]).real ** 2 / (self.params[1]) ** 2 + ((x - self.params[0] - self.aff[0]) / self.aff[1]).imag ** 2 / (self.params[2]) ** 2 - 1
       out = 1 if f < 0 else 0
     if self.name == sh.circle:
-      f = abs(x - self.params[0]) ** 2 -  self.params[1] ** 2
+      f = abs(x - self.params[0] - self.aff[0]) ** 2 - (self.params[1] * np.abs(self.aff[1])) ** 2
       out = 1 if f < 0 else 0
     return out
   def plot(self, p=True, *args, **kwargs):
@@ -141,6 +141,7 @@ class Segment:
     if 'markersize' not in kwargs and 'ms' not in kwargs: kwargs['markersize'] = 0.5
     plt.plot(xx, yy, 'k*-', **kwargs)
     plt.axis('equal')
+    plt.show(block=False)
     return
 # =======================================================================================================================
 class Boundary:
