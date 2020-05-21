@@ -31,13 +31,19 @@ def directA(l, c): # to delete
   A = Kp
   A[np.diag_indices(len(l.b[0].x))]=A[np.diag_indices(len(l.b[0].x))] + 0.5 * c
   return A
-
+two_conductivities_flag=False
 @printname_dpb
 def directKpc(l, c):
   # Kp = l.exp(s=l.b[0])
   Kp = l.eval_self(exp=ly.layerpotSD)
   Kpc = Kp
-  Kpc[np.diag_indices(l.n)] = Kpc[np.diag_indices(l.n)] + 0.5 * c
+  if two_conductivities_flag:
+    print('    Kpc shape ==== ', Kpc.shape, l.x.shape, l.condc.shape)
+    Kpc[np.diag_indices(l.n)] = Kpc[np.diag_indices(l.n)] + 0.5 * l.condc
+  else:
+    print('    Kpc: used standard c from main ===== ', c)
+    Kpc[np.diag_indices(l.n)] = Kpc[np.diag_indices(l.n)] + 0.5 * c
+
   if verbose:
     print(dbgg.CYAN, end='')
     print('  directKpc condition num = %.5e' %numpy.linalg.cond(np.array(Kpc, float)))

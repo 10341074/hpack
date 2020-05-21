@@ -31,7 +31,7 @@ BY_set = 0
 print('Y regularization with method:', regmet, ' and solver:', solver)
 
 class EIT:
-  def __init__(self, alpha = 1e-10, delta = 5e-8, theta = 0, noiselevel = 0, noiselevelK = 0, m0 = 30, m = 15, h = 2.0): # try noiselevel 0.01
+  def __init__(self, alpha = 1e-10, delta = 5e-8, theta = 0, noiselevel = 0, noiselevelK = 0, noiselevelU = 0, m0 = 30, m = 15, h = 2.0): # try noiselevel 0.01
     '''
     This constructor initializes these fields
       - meshgrid: only for final intensity visualization
@@ -49,16 +49,18 @@ class EIT:
     self.theta = theta
     self.noiselevel = noiselevel
     self.noiselevelK = noiselevelK
+    self.noiselevelU = noiselevelU
     self.m = m
     self.m0 = m0
-    self.c = 1.0 * (h + 1) / (h - 1)
-  def domain(self, index='one_ellipse', nsb=80, nso=80, nsd=40, rb=5, ro=3, *args, **kwargs):
+    self.h = h
+    self.c = sg.const_from_conductivity(1.0 * (h + 1) / (h - 1))
+  def domain(self, index='one_ellipse', nsb=80, nso=80, nsd=40, rb=5, ro=3, quad='ps', *args, **kwargs):
     '''
     This function add fields 
       'sb', 'so', 'ld'
     to instance using template function with circumferences for 'sb', 'so'
     '''
-    self.sb, self.so, self.ld = gm.template_bod(name_sd=index, nsb=nsb, nso=nso, nsd=nsd, rb=rb, ro=ro, *args, **kwargs)
+    self.sb, self.so, self.ld = gm.template_bod(name_sd=index, nsb=nsb, nso=nso, nsd=nsd, rb=rb, ro=ro, quad=quad, *args, **kwargs)
     rounded_range = np.ceil(np.round(np.max(np.abs(self.so.x)), decimals=2))
     print("--- rounded range = %d from %.2f---" %(rounded_range, np.max(np.abs(self.so.x))))
     self.meshgrid_args = (-rounded_range, rounded_range, 80)
@@ -86,19 +88,21 @@ class EIT:
     for k in range(len(self.testpoints.x)):
       if self.testpoints.flag_inside_s[k] == 0:
         self.z[k] = default_value
-  def plot(self, z=(), pltype='im', *args, **kwargs):
+  def plot(self, z=(), pltype='im', pllevels='exp', *args, **kwargs):
     if z == ():
       z = self.z
     self.plot_pre()
-    fig = plot.plot(self.x, self.y, z, pltype=pltype, *args, **kwargs)
+    fig = plot.plot(self.x, self.y, z, pltype=pltype, pllevels=pllevels, *args, **kwargs)
     self.plot_domain()
     plt.show(block=False)
   # -------------------------------------------------------------------
-  def addnoiseK(self):
-    noisemodul = max([max(abs(r)) for r in self.K]) * self.noiselevelK
-    noise = noisemodul * numpy.random.normal(0, 1, self.K.shape)
-    self.K = self.K + noise
-    print('Added noise K')
+  def addnoiseK(self, K, noiselevel):
+    noiseamplitude = np.max(np.abs(K)) * noiselevel
+    noise = noiseamplitude * numpy.random.normal(0, 1, K.shape)
+    K = K + noise
+    print('')
+    print('  added noise K')
+    return K
   # -------------------------------------------------------------------
   def basis_X(self, t='e'):
     self.so.BX, self.so.BXinv = sg.get_Basis(n=self.so.n, w=self.so.w, t=t)
@@ -131,7 +135,6 @@ class EIT:
       self.LL0B = ipb.computeLL0B(self.ld, self.so, T=self.so.BX, c=self.c, L0B=self.L0B, LB=self.LB)
       RHS_fcom = ipb.NtoD_computeRHSB
       K = self.LL0B
-    self.K = K
     # self.u, self.w, self.v = linalg.svd(self.K)
     BXr = np.eye(self.so.n)
     BXr = linf.base_mean(BXr, self.so.w)
@@ -139,7 +142,8 @@ class EIT:
     L = ipb.computeL(self.ld, self.so, BXr, self.c)
     
     RHS_args = {'L0' : self.L0, 'L0B' : self.L0B, 's' : self.so, 'z0' : (), 'theta' : self.theta, 'noiselevel' : self.noiselevel}
-    self.addnoiseK()
+    K = self.addnoiseK(K, self.noiselevelK)
+    self.K = K
     self.isolver = ipb.solver_init(A=K, alpha=self.alpha, delta=self.delta, reg=1, regmet=regmet, solvertype=solver, RHS_fcom=RHS_fcom, RHS_args=RHS_args, so=self.so, testpoints=self.testpoints, BX=self.so.BX, BY=self.so.BY)
   # =========================================================================================================================================
   #----------------------------------------------------- reciprocity gap --------------------------------------------------------------------
@@ -167,6 +171,8 @@ class EIT:
       Setting:
       - Solver.RHS_args: 'R', 'U', 'U_nu', 'w'
     '''
+    U    = self.addnoiseK(U, self.noiselevelU)
+    U_nu = self.addnoiseK(U_nu, self.noiselevelU)
     RHS_args = {'L0' : (), 'L0B' : (), 's' : self.so, 'z0' : (), 'theta' : self.theta, 'noiselevel' : self.noiselevel}
     self.isolver = ipb.solver_init(A=R, alpha=self.alpha, delta=self.delta, reg=1, regmet=regmet, solvertype=solver, RHS_fcom=RHS_fcom, RHS_args=RHS_args, so=self.so, testpoints=self.testpoints, BX=(), BY=())
     self.isolver.RHS_args['R'] = R
@@ -174,6 +180,8 @@ class EIT:
     self.isolver.RHS_args['U_nu'] = U_nu
     # self.isolver.w = self.sb.w, fbxbbzzbz
     return
+  def solver_update_alpha(self, alpha_new):
+    self.isolver.update_alpha_original(alpha_new)
   # =========================================================================================================================================
   # ---------------------------------------------------- heavy methods : morozov iterations -----------------------------------------------
   # =========================================================================================================================================
@@ -239,12 +247,14 @@ class EIT:
     self.isolver = ipb.solver_init(A=self.LLdiff, alpha=self.alpha, delta=self.delta, reg=1, regmet=regmet, solvertype=solver, RHS_fcom=RHS_fcom, RHS_args=RHS_args, so=self.so, testpoints=self.testpoints, BX=self.so.BX, BY=self.so.BY)
     self.LLfact = self.LL0
     # self.LLfact = self.LLdiff
-    self.K = self.LLfact
-    self.addnoiseK()
+    K = self.LLfact
+    K = self.addnoiseK(K, self.noiselevelK)
+    self.K = K
     self.LLfact = self.K
-  def fact_addnoiseK(self):
-    self.K = self.LLfact
-    self.addnoiseK()
+  def fact_addnoiseK(self, K):
+    K = self.LLfact
+    K = self.addnoiseK(K, self.noiselevelK)
+    self.K = K
     self.LLfact = self.K
   def fact_ieig(self):
     mselect = self.m0

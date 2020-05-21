@@ -61,18 +61,26 @@ def template_bod(name_sd = 'one_ellipse', nsb = 80, nso = 100, nsd = 40, rb = 5,
 example = template_bod
 
 # -----------------------------------------------------------------------------------------------
-def template_lay_ld(name = 'ell_thin', nd = 100):
+def template_lay_ld(name = 'ell_thin', nd = 100, h1=2.0, h2=2.0):
   switcher = {
-    'kite_025pi_small'  : (lambda nd: sg.Layer([sg.Boundary([sg.Segment(nd, Z_args = (sh.kZ, sh.kZp, sh.kZpp, ()),  quad='ps', aff=(0, 0.5*np.exp(1j * np.pi / 4)))   ])])),
-    'kite_025pi'        : (lambda nd: sg.Layer([sg.Boundary([sg.Segment(nd, Z_args = (sh.kZ, sh.kZp, sh.kZpp, ()),  quad='ps', aff=(0,  np.exp(1j * np.pi / 4)))      ])])),
-    'ell_thin'          : (lambda nd: sg.Layer([sg.Boundary([sg.Segment(nd, f_inargs = (sh.ellipse, (0, 0.1, 1.2)), quad='ps', aff=(-1, np.exp(1j * np.pi * 2/3)))    ])])),
-    'ell_thin0'         : (lambda nd: sg.Layer([sg.Boundary([sg.Segment(nd, f_inargs = (sh.ellipse, (0, 0.1, 1.2)), quad='ps', aff=(0,  np.exp(1j * np.pi * 2/3)))    ])])),
-    'one_ell'           : (lambda nd: sg.Layer([sg.Boundary([sg.Segment(nd, f_inargs = (sh.ellipse, (0, 2, 1)),     quad='ps')                                        ])])),
-    'ell_big'           : (lambda nd: sg.Layer([sg.Boundary([sg.Segment(nd, f_inargs = (sh.ellipse, (0, 1.8, 1.2)), quad='ps', aff=(1,  np.exp(1j * np.pi/4)))        ])])),
-    'one_tri'           : (lambda nd: sg.Layer([sg.Boundary([sg.poly([2, 1+1.5j, -1+1j], int(nd)),                                                                ])])),
-    'one_tri_center'    : (lambda nd: sg.Layer([sg.Boundary([sg.poly([1.4-0.8j, 0.4+0.7j, -1.6+0.2j], int(nd)),                                                                ])])),
-    'two_ell'           : (lambda nd: lay_two_ellipse(nd)),
-    'three_ell'         : (lambda nd: lay_three_ellipse(nd))
+    'kite_025pi_small'    : (lambda nd: sg.Layer([sg.Boundary([sg.Segment(nd, Z_args = (sh.kZ, sh.kZp, sh.kZpp, ()),  quad='ps', aff=(0, 0.5*np.exp(1j * np.pi / 4)))     ])])),
+    'kite_025pi'          : (lambda nd: sg.Layer([sg.Boundary([sg.Segment(nd, Z_args = (sh.kZ, sh.kZp, sh.kZpp, ()),  quad='ps', aff=(0,  np.exp(1j * np.pi / 4)))        ])])),
+    'ell_thin'            : (lambda nd: sg.Layer([sg.Boundary([sg.Segment(nd, f_inargs = (sh.ellipse, (0, 0.1, 1.2)), quad='ps', aff=(-1, np.exp(1j * np.pi * 2/3)))      ])])),
+    'ell_thin0'           : (lambda nd: sg.Layer([sg.Boundary([sg.Segment(nd, f_inargs = (sh.ellipse, (0, 0.1, 1.2)), quad='ps', aff=(0,  np.exp(1j * np.pi * 2/3)))      ])])),
+    'one_ell'             : (lambda nd: sg.Layer([sg.Boundary([sg.Segment(nd, f_inargs = (sh.ellipse, (0, 2, 1)),     quad='ps')                                          ])])),
+    'ell_big'             : (lambda nd: sg.Layer([sg.Boundary([sg.Segment(nd, f_inargs = (sh.ellipse, (0, 1.8, 1.2)), quad='ps', aff=(1,  np.exp(1j * np.pi/4)))          ])])),
+    'one_tri'             : (lambda nd: sg.Layer([sg.Boundary([sg.poly([2, 1+1.5j, -1+1j], int(nd/3)),                                                                    ])])),
+    'one_tri_center'      : (lambda nd: sg.Layer([sg.Boundary([sg.poly([1.4-0.8j, 0.4+0.7j, -1.6+0.2j], int(nd/3)),                                                       ])])),
+    'one_tri_square'      : (lambda nd: sg.Layer([sg.Boundary([sg.poly([1.4-0.8j, 0.4+0.7j, -1.6+0.2j], int(nd/3)), sg.poly([1.5+0.5j, 2+1j, 1.5+1.5j, 1+1j], int(nd/4))  ])])),
+    'one_mix'             : (lambda nd: sg.Layer([sg.Boundary([sg.poly([1.4-0.8j, 0.4+0.7j, -1.6+0.2j], int(nd/3)), sg.poly([1.5+0.5j, 2+1j, 1.5+1.5j, 1+1j], int(nd/4)), sg.Segment(nd, Z_args = (sh.kZ, sh.kZp, sh.kZpp, ()),  quad='ps', aff=(-1.5-1.5j, 0.5*np.exp(1j * (- 3) * np.pi / 4))), sg.Segment(nd, f_inargs = (sh.ellipse, (0, 0.1, 1.2)), quad='ps', aff=(-1+1.5j, np.exp(1j * np.pi * 2/3)))    ])])),
+    'one_square'          : (lambda nd: sg.Layer([sg.Boundary([sg.poly([-0.5-0.5j, 1.5-0.5j, 1.5+1.5j, -0.5+1.5j], int(nd/4)),                                            ])])),
+    'one_cross'           : (lambda nd: sg.Layer([sg.Boundary([sg.poly([-0.5-1.5j, 0.5-1.5j, 0.5-0.5j, 1.5-0.5j, 1.5+0.5j, 0.5+0.5j, 0.5+1.5j, -0.5+1.5j, -0.5+0.5j, -1.5+0.5j, -1.5-0.5j, -0.5-0.5j], int(nd/12)), ])])),
+    'two_ell'             : (lambda nd: lay_two_ellipse(nd)),
+    'three_ell'           : (lambda nd: lay_three_ellipse(nd)),
+    'one_kite'            : (lambda nd: lay_one_kite(nd)),
+    'two_kite'            : (lambda nd: sg.Layer([sg.Boundary([sg.Segment(2*nd, Z_args = (sh.kZ, sh.kZp, sh.kZpp, ()),  quad='ps', aff=(-0.5+0.5j,  0.8*np.exp(1j * np.pi / 4))), sg.Segment(nd, Z_args = (sh.kZ, sh.kZp, sh.kZpp, ()),  quad='ps', aff=(1-1j, 0.5*np.exp(1j * np.pi / 4))) ])])),
+    'two_ell_twoc'        : (lambda nd: sg.Layer([sg.Boundary([sg.Segment(nd, f_inargs = (sh.ellipse, (0, 2, 1)), quad='ps', aff=(-1-1j, 0.4 + 0.4j), h=h1) ]), sg.Boundary([sg.Segment(nd, f_inargs = (sh.ellipse, (0, 2, 1)), quad='ps', aff=(0.5 +1j, 0.4 - 0.4j), h=h2)               ])])),
+    'two_kite_twoc'       : (lambda nd: sg.Layer([sg.Boundary([sg.Segment(2*nd, Z_args = (sh.kZ, sh.kZp, sh.kZpp, ()),  quad='ps', aff=(-0.5+0.5j,  0.8*np.exp(1j * np.pi / 4)), h=h1), sg.Segment(nd, Z_args = (sh.kZ, sh.kZp, sh.kZpp, ()),  quad='ps', aff=(1-1j, 0.5*np.exp(1j * np.pi / 4)), h=h2) ])])),
   }
   return switcher[name](nd)
 
@@ -82,6 +90,8 @@ def template_lay_ld_flag(name = 'ell_thin', nd = 100):
     'ell_thin'          : (lambda nd: sg_circleaff( nd, 1, (-1, 1.5))),
     'one_tri'           : (lambda nd: sg_ellipseaff(nd, (2.2, 1.8), (0.6+0.8j, np.exp(-np.pi/7 * 1j)))),
     'one_tri_center'    : (lambda nd: sg_ellipseaff(nd, (2.2, 1.8), (0, np.exp(-np.pi/7 * 1j)))),
+    'one_tri_square'    : (lambda nd: sg_ellipseaff(nd, (2.5, 2.4), (0.2, np.exp(-np.pi/7 * 1j)))),
+    'one_mix'           : (lambda nd: sg_circleaff( nd, 3)),
     'two_ell'           : (lambda nd: sg_ellipseaff(nd, (1.8, 1.4), aff=(0, 1.6*np.exp(1j * np.pi/4)))),
     'three_ell'         : (lambda nd: sg_circleaff( nd, 2.2))
   }

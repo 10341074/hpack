@@ -34,8 +34,8 @@ def meshgrid(x1_x2_xn, y1_y2_yn=((), (), ())):
   x, y, pp = plot.meshgrid(x1_x2_xn, y1_y2_yn)
   pp = sg.Pointset(pp)
   return (x, y, pp)
-# -------------------------------------------------------------
-# ---- reciprocal gap: rhs ----
+# ================================================================================================
+# ---- rhs: reciprocal gap ----
 @printname_ipb
 def gap_computeRHS(args):
   '''
@@ -50,11 +50,22 @@ def gap_computeRHS(args):
   U, U_nu, z0, so, theta = args['U'], args['U_nu'], args['z0'], args['s'], args['theta']
   F = np.cos(theta) * ly.phi_x(z0, so.x) + np.sin(theta) * ly.phi_y(z0, so.x)
   F_nu = np.cos(theta) * ly.phi_x_n(z0, so.x, so.nx) + np.sin(theta) * ly.phi_y_n(z0, so.x, so.nx)
-  return U.dot(F_nu) - U_nu.dot(F)
+  rhs = U.dot(F_nu) - U_nu.dot(F)
+  # -------------------------------------------------------
+  # -- adding noise --
+  noiselevel     = args['noiselevel']
+  noiseamplitude = max(abs(rhs)) * noiselevel
+  noise = noiseamplitude * numpy.random.normal(0, 1, rhs.size)
+  # ------------------
+  rhs = rhs + noise
+  # -------------------------------------------------------
+  return rhs
+
 @printname_ipb
 def gap_computeRHSB(args):
   rhs = gap_computeRHS(args, rhs)
   return s.B[:, 1:].T.dot(np.diagflat(s.w).dot(rhs))
+# ================================================================================================
 # -------------------------------------------------------------
 # ---- Tikhnov method to solve A * x = rhs, with alpha ----
 @printname_ipb
@@ -120,8 +131,8 @@ def solver_init(A, alpha, delta, reg, regmet, solvertype, RHS_fcom, RHS_args, so
 # ------------------------ reciprocity gap -------------------------------------------------------
 @printname_ipb
 def computeU(allpsi, ld, so, sb):
-  kerS  = ly.layerpotS(0, ld, so)
-  kerSD = ly.layerpotSD(0, ld, so)
+  kerS  = ly.layerpotS(s=ld, t=so)
+  kerSD = ly.layerpotSD(s=ld, t=so)
 
   U_psi    = kerS.dot(allpsi)
   U_psi_nu = kerSD.dot(allpsi)
@@ -195,33 +206,42 @@ def computeRHSNtoDtikh(LL0, z0, so, theta=0, RHS=()):
 # ================================================================================================
 @printname_ipb
 def NtoD_computeneumb(args):
+  ''' neumann term in linear sampling rhs '''
   s, z0, theta = args['s'], args['z0'], args['theta']
   xx = ly.phi_xx(z0, s.x)
   xy = ly.phi_xy(z0, s.x)
   yy = ly.phi_yy(z0, s.x)
-  # hess = [[xx, xy] , [xy, yy]]
   d = np.cos(theta) + 1j * np.sin(theta)
   neum = s.nx.real * xx * d.real + s.nx.real * xy * d.imag + \
          s.nx.imag * xy * d.real + s.nx.imag * yy * d.imag
   return neum
 
+# ================================================================================================
+# ---- rhs: linear sampling ----
 @printname_ipb
 def NtoD_computeRHS(args, rhs=()):
+  '''
+    linear sampling method: rhs = (3 terms) = rhspsi - m (mean) - dirich(to_vanish_norm_deriv)
+  '''
   L0, L0B, s, z0, theta = args['L0'], args['L0B'], args['s'], args['z0'], args['theta']
   if rhs != (): # remove check at every call
     return rhs
-  d = np.cos(theta) + 1j * np.sin(theta)
+  ''' term 3 '''
   neumb = NtoD_computeneumb(args)
   dirh = L0.dot(neumb)
+  ''' term 1 '''
+  d = np.cos(theta) + 1j * np.sin(theta)
   rhs = ly.scalar(d, ly.phi_p(z0, s.x))
+  ''' term 2 '''
   m = sum(rhs * s.w) / sum(s.w)
   rhs = rhs - m
   rhs = rhs - dirh
   # -------------------------------------------------------
   # -- adding noise --
-  noiselevel = args['noiselevel']
-  noisemodul = max(abs(rhs)) * noiselevel
-  noise = noisemodul * numpy.random.normal(0, 1, rhs.size)
+  noiselevel     = args['noiselevel']
+  noiseamplitude = max(abs(rhs)) * noiselevel
+  noise = noiseamplitude * numpy.random.normal(0, 1, rhs.size)
+  # ------------------
   rhs = rhs + noise
   # -------------------------------------------------------
   return rhs

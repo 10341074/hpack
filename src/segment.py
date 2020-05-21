@@ -11,6 +11,9 @@ import layerpot as ly
 
 import linfunc as linf
 
+def const_from_conductivity(h):
+  return 1.0 * (h + 1) / (h - 1)
+
 class Basis:
   def __init__(self, n, w=(), t='e'):
     # t='e' canonical, eye basis
@@ -35,7 +38,7 @@ def get_basis_trigonometric(n):
   return Borth
   
 class Segment:
-  def __init__(self, n, Z_args=((), (), (), ()), f_inargs=((), ()), quad='ps', aff=(0, 1), sign=1, more=1):
+  def __init__(self, n, Z_args=((), (), (), ()), f_inargs=((), ()), quad='ps', aff=(0, 1), sign=1, more=1, h=2.0):
     '''
       This constructor initializes these fields
       - x:     (complex = R^2) curve points
@@ -117,6 +120,9 @@ class Segment:
       
       self.BX, self.BXinv = get_Basis(self.n)
       self.BY, self.BYinv = get_Basis(self.n)
+    # -------------------------------------------------------------------
+    condc = const_from_conductivity(h)
+    self.condc = np.array([condc for t in self.t], np.cfloat)
     # ---- save properties ----------------------------------------------
     self.name   = f_inargs[0]
     self.params = f_inargs[1]
@@ -137,8 +143,8 @@ class Segment:
     if p:
       xx.append(xx[0])
       yy.append(yy[0])
-    if 'linewidth' not in kwargs and 'lw' not in kwargs: kwargs['linewidth'] = 0.5
-    if 'markersize' not in kwargs and 'ms' not in kwargs: kwargs['markersize'] = 0.5
+    if 'linewidth' not in kwargs and 'lw' not in kwargs: kwargs['linewidth'] = 0.8
+    if 'markersize' not in kwargs and 'ms' not in kwargs: kwargs['markersize'] = 0.8
     plt.plot(xx, yy, 'k*-', **kwargs)
     plt.axis('equal')
     plt.show(block=False)
@@ -154,6 +160,7 @@ class Boundary:
     self.speed = np.array([sp for p in pieces for sp in p.speed]) * len(pieces)
     self.kappa = np.array([k for p in pieces for k in p.kappa])
     self.w = np.array([w for p in pieces for w in p.w])
+    self.condc = np.array([c for p in pieces for c in p.condc])
     # else: # no itial position
     #   self.n = sum([len(pk.x) for pk in self.pc]) - len(pieces)
     #   self.x = np.array([z for p in pieces for z in p.x])
@@ -190,7 +197,7 @@ class Pointset:
     self.flag_inside_s = np.ones(len(x))
 
 class Layer:
-  def __init__(self, b=[], exp=[], dns=[]):
+  def __init__(self, b=[], exp=[], dns=[], h=2.0):
     self.b = b
     self.n = sum([len(bk.x) for bk in b])
     self.exp = exp
@@ -202,6 +209,8 @@ class Layer:
     self.speed = np.array([sp for bk in b for sp in bk.speed])
     self.kappa = np.array([k for bk in b for k in bk.kappa])
     self.w = np.array([w for bk in b for w in bk.w])
+    self.condc = np.array([c for bk in b for c in bk.condc])
+  # -------------------------------------------------------------------------
   def plot(self, p=True, *args, **kargs):
     for bk in self.b:
       bk.plot(p, *args, **kargs)

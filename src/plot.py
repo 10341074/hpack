@@ -27,32 +27,37 @@ def meshgrid(x1_x2_xn, y1_y2_yn=((), (), ())):
   pp = pp.reshape(xn * yn)
   return (x, y, pp)
 
-def plot(x, y, vv, show=1, pltype='im', *args, **kwargs):
+def plot(x, y, vv, show=1, pltype='im', pllevels='exp', colorbar=True, *args, **kwargs):
   fig = plt.figure()
   v = vv.reshape((len(y), len(x)))
   if pltype == 'c':
-    if 'levels' not in kwargs: kwargs['levels'] = 20
-    fig = plt.contour(x, y, v)
-    plt.colorbar()
+    if 'levels' not in kwargs: kwargs['levels'] = 30
+    if pllevels == 'log': kwargs['levels'] = (np.log(np.linspace(1, 2, kwargs['levels'])) / np.log(2)) * (np.max(v) - np.min(v)) + np.min(v)
+    if pllevels == 'exp': kwargs['levels'] = (np.exp(np.linspace(0, 1, kwargs['levels'])) - 1) / (np.exp(1) - 1) * (np.max(v) - np.min(v)) + np.min(v)
+    fig = plt.contour(x, y, v, *args, **kwargs)
+    if colorbar: plt.colorbar()
   if pltype == 'cf':
-    if 'levels' not in kwargs: kwargs['levels'] = 20
-    fig = plt.contourf(x, y, v)
-    plt.colorbar()
+    if 'levels' not in kwargs: kwargs['levels'] = 30
+    if pllevels == 'log': kwargs['levels'] = (np.log(np.linspace(1, 2, kwargs['levels'])) / np.log(2)) * (np.max(v) - np.min(v)) + np.min(v)
+    if pllevels == 'exp': kwargs['levels'] = (np.exp(np.linspace(0, 1, kwargs['levels'])) - 1) / (np.exp(1) - 1) * (np.max(v) - np.min(v)) + np.min(v)
+    fig = plt.contourf(x, y, v, *args, **kwargs)
+    if colorbar: plt.colorbar()
   elif pltype == 'im':
     fig = plt.imshow(np.array(v[::-1], 'float64'), extent = (x[0], x[-1], y[0], y[-1]), *args, **kwargs)
-    plt.colorbar()
+    if colorbar: plt.colorbar()
   elif pltype == 'srf' or pltype == 'maxsrf':
     if pltype == 'maxsrf':
       mng = plt.get_current_fig_manager()
       mng.resize(*mng.window.maxsize())
     ax = fig.gca(projection='3d')
-    xx, yy = np.meshgrid(x, y, sparse=True)
+    xx, yy = np.meshgrid(x, y,  sparse=True)
     surf = ax.plot_surface(xx, yy, v, cmap=cm.coolwarm)
-    fig.colorbar(surf)
+    if colorbar: fig.colorbar(surf)
   # ------------------
     # surf = ax.plot_surface(X, Y, Z, cmap=cm.coolwarm, linewidth=0, antialiased=False)
     # h = pylab.imshow(v, interpolation='nearest')
   # ----------------------------------------------------------------------------------------------------
+  plt.axis('square')
   plt.axis('equal')
   if show:
     plt.show(block=False)

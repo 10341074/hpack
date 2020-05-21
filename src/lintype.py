@@ -39,6 +39,7 @@ class Solver:
     self.alpha = alpha
     self.w = w
     
+    self.Areg_func = Areg_func
     self.RHS_f = RHS_f # function
     self.RHS_fcom = RHS_fcom
     self.RHS_args = RHS_args
@@ -59,7 +60,8 @@ class Solver:
     ''' savings '''
     self.save = SolverSavings(0, len(testpoints.x), self.Ar.shape)
     ''' init linear system '''
-    self.init_solver_arrays(solvertype)
+    self.solvertype = solvertype
+    self.init_solver_arrays(self.solvertype)
     return
   def init_solver_arrays(self, solvertype):
     self.solvertype = solvertype
@@ -78,4 +80,10 @@ class Solver:
     return
   def add_iterations_alpha(self, it_alpha, num_testpoints):
     self.save.add_iterations_alpha(it_alpha, num_testpoints, self.Ar.shape)
+  def update_alpha_original(self, alpha_new):
+    self.alpha = alpha_new
+    self.alpha_orig   = alpha_new
+    self.alpha_orig   = alpha_new
+    self.Ar = self.Areg_func(A=self.A, alpha=self.alpha)
+    self.init_solver_arrays(self.solvertype)
   
