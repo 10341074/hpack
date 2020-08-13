@@ -22,8 +22,9 @@ from compmapproblem import *
 
 import debug_globals as dbgg
 from debug import printname
-verbose = 0
 
+verbose = 0
+saving_disc = 1
 # -------------------------------------------------------------
 def printname_ipb(func):
   return printname(func, "ipb", print_this=verbose)
@@ -366,9 +367,10 @@ def iallsols_onetestpoint(isolver, w, k_point, k_alpha, rhs):
   # ---- save densities of linear equation -------
   sol = isolver.BX.dot(zeta)
   sol = sol - sum(sol * w) / sum(w)
-  isolver.save.zeta[k_alpha, k_point, :] = zeta
-  isolver.save.sol [k_alpha, k_point, :] = sol
-  isolver.save.rhs [k_alpha, k_point, :] = rhs
+  if saving_disc:
+    isolver.save.zeta[k_alpha, k_point, :] = zeta
+    isolver.save.sol [k_alpha, k_point, :] = sol
+    isolver.save.rhs [k_alpha, k_point, :] = rhs
 
   sol_p = isolver.BX.dot(zeta_p)
   sol_p = sol_p - sum(sol_p * w) / sum(w)
@@ -378,12 +380,15 @@ def iallsols_onetestpoint(isolver, w, k_point, k_alpha, rhs):
   # ---- save ------------------------------------------------
   discrepancy       = func_disc_value_pow1_n(res, sol, w, isolver.delta)
   discrepancy_deriv = func_disc_deriv_pow1_n(res, Kdx, sol, sol_p, w, isolver.delta)
-  isolver.save.disc    [k_alpha, k_point] = discrepancy
-  isolver.save.alpha   [k_alpha, k_point] = isolver.alpha
-  isolver.save.discr_d [k_alpha, k_point] = discrepancy_deriv
-  isolver.save.ratio   [k_alpha, k_point] = np.sqrt(sum(rhs**2 * w)) / np.sqrt(sum(sol**2 * w))
-  isolver.save.alpha_l          [k_point] = isolver.alpha_l
-  isolver.save.alpha_r          [k_point] = isolver.alpha_r
+  if saving_disc:
+    isolver.save.disc    [k_alpha, k_point] = discrepancy
+    isolver.save.alpha   [k_alpha, k_point] = isolver.alpha
+    isolver.save.discr_d [k_alpha, k_point] = discrepancy_deriv
+    isolver.save.ratio   [k_alpha, k_point] = np.sqrt(sum(rhs**2 * w)) / np.sqrt(sum(sol**2 * w))
+    isolver.save.alpha_l          [k_point] = isolver.alpha_l
+    isolver.save.alpha_r          [k_point] = isolver.alpha_r
+  if k_alpha == (isolver.save.ratio.shape[0] - 1):
+    isolver.save.ratio   [k_alpha, k_point] = np.sqrt(sum(rhs**2 * w)) / np.sqrt(sum(sol**2 * w))
   # ----------------------------------------------------------
   # ---- new alpha limits for next iterations -----
   if isolver.alpha_method == 'opt_bisect':
